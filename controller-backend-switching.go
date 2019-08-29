@@ -41,7 +41,7 @@ func (c *ZorpController) useBackendRuleRefresh() (needsReload bool) {
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(sortedList))) // reverse order
 
-	frontend, _ := c.frontendGet(FrontendHTTPS)
+	//frontend, _ := c.frontendGet(FrontendHTTPS)
 	backends := map[string]struct{}{
 		frontend.DefaultBackend: struct{}{},
 		"RateLimit":             struct{}{},
