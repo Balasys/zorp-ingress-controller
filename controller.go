@@ -119,38 +119,11 @@ func (c *ZorpController) ZorpInitialize() {
 	}
 }
 
-func (c *ZorpController) saveServerState() error {
-	result, err := c.NativeAPI.Runtime.ExecuteRaw("show servers state")
-	if err != nil {
-		return err
-	}
-	var f *os.File
-	if f, err = os.Create(ZorpStateDir + "global"); err != nil {
-		log.Println(err)
-		return err
-	}
-	defer f.Close()
-	if _, err = f.Write([]byte(result[0])); err != nil {
-		log.Println(err)
-		return err
-	}
-	if err = f.Sync(); err != nil {
-		log.Println(err)
-		return err
-	}
-	if err = f.Close(); err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
-}
-
 func (c *ZorpController) ZorpReload() error {
 	err := c.NativeParser.Save(ZorpGlobalCFG)
 	if err != nil {
 		return err
 	}
-	err = c.saveServerState()
 	LogErr(err)
 	if !c.osArgs.Test {
 		cmd := exec.Command("service", "zorp", "reload")
