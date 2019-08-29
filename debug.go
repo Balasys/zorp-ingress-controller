@@ -41,8 +41,8 @@ func setupTestEnv() {
 		log.Fatal(err)
 	}
 	log.Println(dir)
-	copyFile(path.Join(dir, "fs/etc/zorp/zorp.cfg"), ZorpCFG)
-	copyFile(path.Join(dir, "fs/etc/zorp/global.cfg"), ZorpGlobalCFG)
+	copyFile(path.Join(dir, "fs/etc/zorp/policy.py"), ZorpCFG)
+	copyFile(path.Join(dir, "fs/etc/zorp/instances.conf"), ZorpGlobalCFG)
 	log.Println(string(out))
 }
 

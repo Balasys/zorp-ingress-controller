@@ -19,8 +19,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
+        "os/user"
 	"strconv"
 	"strings"
+        "syscall"
 
 	clientnative "github.com/haproxytech/client-native"
 	"github.com/haproxytech/client-native/configuration"
@@ -82,10 +84,18 @@ func (c *ZorpController) ZorpInitialize() {
 	if err != nil {
 		log.Panic(err.Error())
 	}
+        group, err := user.Lookup("zorp")
+        if err != nil {
+                log.Panic(err.Error())
+        }
+        uid, _ := strconv.Atoi(group.Uid)
+        gid, _ := strconv.Atoi(group.Gid)
+        err = syscall.Chown(ZorpStateDir, uid, gid)
+
 
 	log.Println("Starting Zorp with", ZorpCFG)
 	if !c.osArgs.Test {
-		cmd := exec.Command("service", "zorp", "start")
+		cmd := exec.Command("/etc/init.d/zorp", "start")
 		err = cmd.Run()
 		if err != nil {
 			log.Println(err)
