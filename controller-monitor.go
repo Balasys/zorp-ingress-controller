@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-func (c *HAProxyController) monitorChanges() {
+func (c *ZorpController) monitorChanges() {
 
 	configMapReceivedAndProcessed := make(chan bool)
 	syncEveryNSeconds := 5
@@ -106,9 +106,9 @@ func (c *HAProxyController) monitorChanges() {
 	}
 }
 
-//SyncData gets all kubernetes changes, aggregates them and apply to HAProxy.
+//SyncData gets all kubernetes changes, aggregates them and apply to Zorp.
 //All the changes must come through this function
-func (c *HAProxyController) SyncData(jobChan <-chan SyncDataEvent, chConfigMapReceivedAndProcessed chan bool) {
+func (c *ZorpController) SyncData(jobChan <-chan SyncDataEvent, chConfigMapReceivedAndProcessed chan bool) {
 	hadChanges := false
 	c.cfg.Init(c.osArgs, c.NativeAPI)
 	for job := range jobChan {
@@ -117,7 +117,7 @@ func (c *HAProxyController) SyncData(jobChan <-chan SyncDataEvent, chConfigMapRe
 		switch job.SyncType {
 		case COMMAND:
 			if hadChanges {
-				if err := c.updateHAProxy(); err != nil {
+				if err := c.updateZorp(); err != nil {
 					log.Println(err)
 				}
 				continue

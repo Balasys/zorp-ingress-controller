@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ type BackendSwitchingRule struct {
 	Backend string
 }
 
-func (c *HAProxyController) useBackendRuleRefresh() (needsReload bool) {
+func (c *ZorpController) useBackendRuleRefresh() (needsReload bool) {
 	needsReload = false
 	if c.cfg.UseBackendRulesStatus == EMPTY {
 		return needsReload

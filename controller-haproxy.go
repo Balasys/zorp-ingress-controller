@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-func (c *HAProxyController) updateHAProxy() error {
+func (c *ZorpController) updateZorp() error {
 	needsReload := false
 
 	c.handleDefaultTimeouts()
@@ -143,16 +143,16 @@ func (c *HAProxyController) updateHAProxy() error {
 	}
 	c.cfg.Clean()
 	if needsReload {
-		if err := c.HAProxyReload(); err != nil {
+		if err := c.ZorpReload(); err != nil {
 			log.Println(err)
 		} else {
-			log.Println("HAProxy reloaded")
+			log.Println("Zorp reloaded")
 		}
 	}
 	return nil
 }
 
-func (c *HAProxyController) handleMaxconn(maxconn *int64, frontends ...string) error {
+func (c *ZorpController) handleMaxconn(maxconn *int64, frontends ...string) error {
 	for _, frontendName := range frontends {
 		if frontend, err := c.frontendGet(frontendName); err == nil {
 			frontend.Maxconn = maxconn
@@ -165,7 +165,7 @@ func (c *HAProxyController) handleMaxconn(maxconn *int64, frontends ...string) e
 	return nil
 }
 
-func (c *HAProxyController) handleDefaultService(backendsUsed map[string]struct{}) (needsReload bool, err error) {
+func (c *ZorpController) handleDefaultService(backendsUsed map[string]struct{}) (needsReload bool, err error) {
 	needsReload = false
 	dsvcData, _ := GetValueFromAnnotations("default-backend-service")
 	dsvc := strings.Split(dsvcData.Value, "/")

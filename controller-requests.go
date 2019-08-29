@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"sort"
 )
 
-func (c *HAProxyController) RequestsHTTPRefresh() (needsReload bool, err error) {
+func (c *ZorpController) RequestsHTTPRefresh() (needsReload bool, err error) {
 	needsReload = false
 	if c.cfg.HTTPRequestsStatus == EMPTY {
 		return needsReload, nil
@@ -71,7 +71,7 @@ func (c *HAProxyController) RequestsHTTPRefresh() (needsReload bool, err error) 
 	return needsReload, nil
 }
 
-func (c *HAProxyController) requestsTCPRefresh() (needsReload bool, err error) {
+func (c *ZorpController) requestsTCPRefresh() (needsReload bool, err error) {
 	needsReload = false
 	if c.cfg.TCPRequestsStatus == EMPTY {
 		return needsReload, nil

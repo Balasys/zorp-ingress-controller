@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ var ratelimitACL3 = models.ACL{
 	Value:     "gt 0",
 }
 
-func (c *HAProxyController) handleRateLimiting(usingHTTPS bool) (needReload bool, err error) {
+func (c *ZorpController) handleRateLimiting(usingHTTPS bool) (needReload bool, err error) {
 	needReload = false
 	annRateLimit, _ := GetValueFromAnnotations("rate-limit", c.cfg.ConfigMap.Annotations)
 

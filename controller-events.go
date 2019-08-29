@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"strconv"
 )
 
-func (c *HAProxyController) eventNamespace(ns *Namespace, data *Namespace) (updateRequired bool) {
+func (c *ZorpController) eventNamespace(ns *Namespace, data *Namespace) (updateRequired bool) {
 	updateRequired = false
 	switch data.Status {
 	case ADDED:
@@ -37,7 +37,7 @@ func (c *HAProxyController) eventNamespace(ns *Namespace, data *Namespace) (upda
 	return updateRequired
 }
 
-func (c *HAProxyController) eventIngress(ns *Namespace, data *Ingress) (updateRequired bool) {
+func (c *ZorpController) eventIngress(ns *Namespace, data *Ingress) (updateRequired bool) {
 	updateRequired = false
 	switch data.Status {
 	case MODIFIED:
@@ -151,7 +151,7 @@ func (c *HAProxyController) eventIngress(ns *Namespace, data *Ingress) (updateRe
 	return updateRequired
 }
 
-func (c *HAProxyController) eventEndpoints(ns *Namespace, data *Endpoints) (updateRequired bool) {
+func (c *ZorpController) eventEndpoints(ns *Namespace, data *Endpoints) (updateRequired bool) {
 	updateRequired = false
 	switch data.Status {
 	case MODIFIED:
@@ -198,7 +198,7 @@ func (c *HAProxyController) eventEndpoints(ns *Namespace, data *Endpoints) (upda
 	return updateRequired
 }
 
-func (c *HAProxyController) setModifiedStatusEndpoints(oldObj, newObj *Endpoints) {
+func (c *ZorpController) setModifiedStatusEndpoints(oldObj, newObj *Endpoints) {
 	if newObj.Namespace != oldObj.Namespace {
 		newObj.Status = MODIFIED
 	}
@@ -213,7 +213,7 @@ func (c *HAProxyController) setModifiedStatusEndpoints(oldObj, newObj *Endpoints
 	for oldKey, adrOld := range *oldObj.Addresses {
 		for _, adrNew := range *newObj.Addresses {
 			if adrOld.IP == adrNew.IP {
-				adrNew.HAProxyName = adrOld.HAProxyName
+				adrNew.ZorpName = adrOld.ZorpName
 				adrNew.Status = adrOld.Status
 				delete(*oldObj.Addresses, oldKey)
 				break
@@ -234,7 +234,7 @@ func (c *HAProxyController) setModifiedStatusEndpoints(oldObj, newObj *Endpoints
 			for _, adrNew := range *newObj.Addresses {
 				if adrNew.Status == ADDED {
 					replaced = true
-					adrNew.HAProxyName = adrOld.HAProxyName
+					adrNew.ZorpName = adrOld.ZorpName
 					adrNew.Status = MODIFIED
 					break
 				}
@@ -280,7 +280,7 @@ func (c *HAProxyController) setModifiedStatusEndpoints(oldObj, newObj *Endpoints
 	}
 }
 
-func (c *HAProxyController) processEndpointIPs(data *Endpoints) (updateRequired bool) {
+func (c *ZorpController) processEndpointIPs(data *Endpoints) (updateRequired bool) {
 	updateRequired = false
 	annIncrement, _ := GetValueFromAnnotations("servers-increment", c.cfg.ConfigMap.Annotations)
 	incrementSize := int64(128)
@@ -290,25 +290,25 @@ func (c *HAProxyController) processEndpointIPs(data *Endpoints) (updateRequired 
 
 	usedNames := map[string]struct{}{}
 	for _, ip := range *data.Addresses {
-		if ip.HAProxyName != "" {
-			usedNames[ip.HAProxyName] = struct{}{}
+		if ip.ZorpName != "" {
+			usedNames[ip.ZorpName] = struct{}{}
 		}
 	}
 	for _, ip := range *data.Addresses {
 		switch ip.Status {
 		case ADDED:
-			//added on haproxy update
+			//added on zorp update
 			ip.Status = ADDED
-			ip.HAProxyName = fmt.Sprintf("SRV_%s", RandomString(5))
-			for _, ok := usedNames[ip.HAProxyName]; ok; {
-				ip.HAProxyName = fmt.Sprintf("SRV_%s", RandomString(5))
+			ip.ZorpName = fmt.Sprintf("SRV_%s", RandomString(5))
+			for _, ok := usedNames[ip.ZorpName]; ok; {
+				ip.ZorpName = fmt.Sprintf("SRV_%s", RandomString(5))
 			}
-			usedNames[ip.HAProxyName] = struct{}{}
+			usedNames[ip.ZorpName] = struct{}{}
 			updateRequired = true
 		case MODIFIED:
 			if data.BackendName != "" {
 				runtimeClient := c.cfg.NativeAPI.Runtime
-				err := runtimeClient.SetServerAddr(data.BackendName, ip.HAProxyName, ip.IP, 0)
+				err := runtimeClient.SetServerAddr(data.BackendName, ip.ZorpName, ip.IP, 0)
 				if err != nil {
 					log.Println(err)
 					updateRequired = true
@@ -317,7 +317,7 @@ func (c *HAProxyController) processEndpointIPs(data *Endpoints) (updateRequired 
 				if ip.Disabled {
 					status = "maint"
 				}
-				err = runtimeClient.SetServerState(data.BackendName, ip.HAProxyName, status)
+				err = runtimeClient.SetServerState(data.BackendName, ip.ZorpName, status)
 				if err != nil {
 					log.Println(err)
 					updateRequired = true
@@ -328,7 +328,7 @@ func (c *HAProxyController) processEndpointIPs(data *Endpoints) (updateRequired 
 				updateRequired = true
 			}
 		case DELETED:
-			//removed on haproxy update
+			//removed on zorp update
 			updateRequired = true
 		}
 	}
@@ -343,16 +343,16 @@ func (c *HAProxyController) processEndpointIPs(data *Endpoints) (updateRequired 
 		return updateRequired
 	}
 	for index := 0; index < toCreate; index++ {
-		hAProxyName := fmt.Sprintf("SRV_%s", RandomString(5))
-		for _, ok := usedNames[hAProxyName]; ok; {
-			hAProxyName = fmt.Sprintf("SRV_%s", RandomString(5))
-			usedNames[hAProxyName] = struct{}{}
+		zorpName := fmt.Sprintf("SRV_%s", RandomString(5))
+		for _, ok := usedNames[zorpName]; ok; {
+			zorpName = fmt.Sprintf("SRV_%s", RandomString(5))
+			usedNames[zorpName] = struct{}{}
 		}
 
-		(*data.Addresses)[hAProxyName] = &EndpointIP{
+		(*data.Addresses)[zorpName] = &EndpointIP{
 			IP:          "127.0.0.1",
-			Name:        hAProxyName,
-			HAProxyName: hAProxyName,
+			Name:        zorpName,
+			ZorpName: zorpName,
 			Disabled:    true,
 			Status:      ADDED,
 		}
@@ -360,7 +360,7 @@ func (c *HAProxyController) processEndpointIPs(data *Endpoints) (updateRequired 
 	return updateRequired
 }
 
-func (c *HAProxyController) eventService(ns *Namespace, data *Service) (updateRequired bool) {
+func (c *ZorpController) eventService(ns *Namespace, data *Service) (updateRequired bool) {
 	updateRequired = false
 	switch data.Status {
 	case MODIFIED:
@@ -399,7 +399,7 @@ func (c *HAProxyController) eventService(ns *Namespace, data *Service) (updateRe
 	return updateRequired
 }
 
-func (c *HAProxyController) eventConfigMap(ns *Namespace, data *ConfigMap, chConfigMapReceivedAndProcessed chan bool) (updateRequired bool) {
+func (c *ZorpController) eventConfigMap(ns *Namespace, data *ConfigMap, chConfigMapReceivedAndProcessed chan bool) (updateRequired bool) {
 	updateRequired = false
 	if ns.Name != c.osArgs.ConfigMap.Namespace ||
 		data.Name != c.osArgs.ConfigMap.Name {
@@ -431,7 +431,7 @@ func (c *HAProxyController) eventConfigMap(ns *Namespace, data *ConfigMap, chCon
 	}
 	return updateRequired
 }
-func (c *HAProxyController) eventSecret(ns *Namespace, data *Secret) (updateRequired bool) {
+func (c *ZorpController) eventSecret(ns *Namespace, data *Secret) (updateRequired bool) {
 	updateRequired = false
 	switch data.Status {
 	case MODIFIED:

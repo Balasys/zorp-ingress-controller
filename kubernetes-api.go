@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -227,7 +227,7 @@ func (k *K8s) convertToEndpoints(obj interface{}, status Status) (*Endpoints, er
 		for _, address := range sp.Addresses {
 			eip := &EndpointIP{
 				IP:          address.IP,
-				HAProxyName: "",
+				ZorpName: "",
 				Disabled:    false,
 				Status:      status,
 			}

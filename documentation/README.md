@@ -1,14 +1,14 @@
-# ![HAProxy](../assets/images/haproxy-weblogo-210x49.png "HAProxy")
+# ![Zorp](../assets/images/balasys-logo.svg "Zorp")
 
-## HAProxy kubernetes ingress controller
+## Zorp kubernetes ingress controller
 
 Options for starting controller can be found in [controller.md](controller.md)
 
 ### Available annotations
 
-> :information_source: Ingress and service annotations can have `ingress.kubernetes.io`, `haproxy.org` and `haproxy.com` prefixes
+> :information_source: Ingress and service annotations can have `ingress.kubernetes.io`, `zorp.org` and `zorp.com` prefixes
 >
-> Example: `haproxy.com/ssl-redirect` and `haproxy.org/ssl-redirect` are same annotation
+> Example: `zorp.com/ssl-redirect` and `zorp.org/ssl-redirect` are same annotation
 
 | Annotation | Type | Default | Dependencies | Config map | Ingress | Service |
 | - |:-:|:-:|:-:|:-:|:-:|:-:|
@@ -50,7 +50,7 @@ Options for starting controller can be found in [controller.md](controller.md)
 #### Balance Algorithm
 
 - Annotation: `load-balance`
-- use in format  `haproxy.org/load-balance: <algorithm> [ <arguments> ]`
+- use in format  `zorp.org/load-balance: <algorithm> [ <arguments> ]`
 
 #### Backend Checks
 
@@ -110,7 +110,7 @@ The number of requests a client can do per `rate-limit-interval` is **10**.
 #### Timeouts
 
 - Annotation `timeout-http-request`
-- Annotation [`timeout-check`](https://cbonte.github.io/haproxy-dconv/2.0/configuration.html#timeout%20check)
+- Annotation [`timeout-check`](https://cbonte.github.io/zorp-dconv/2.0/configuration.html#timeout%20check)
 - Annotation `timeout-connect`
 - Annotation `timeout-client`
 - Annotation `timeout-queue`
