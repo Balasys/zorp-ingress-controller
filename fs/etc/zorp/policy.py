@@ -1,5 +1,5 @@
 
-from Zorp.Core *
+from Zorp.Core import *
 from Zorp.Http import *
 
 config.options.kzorp_enabled = False
