@@ -121,11 +121,6 @@ func (c *ZorpController) ZorpInitialize() {
 }
 
 func (c *ZorpController) ZorpReload() error {
-	err := c.NativeParser.Save(ZorpGlobalCFG)
-	if err != nil {
-		return err
-	}
-	LogErr(err)
 	if !c.osArgs.Test {
 		cmd := exec.Command("service", "zorp", "reload")
 		err = cmd.Run()
