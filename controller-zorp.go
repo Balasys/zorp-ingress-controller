@@ -80,6 +80,12 @@ func (c *ZorpController) updateZorp() error {
 			if annClass.Value != "" && annClass.Value != c.osArgs.IngressClass {
 				ingress.Status = DELETED
 			}
+			d, err := yaml.Marshal(ingress)
+			if err != nil {
+				log.Fatalf("error: %v", err)
+			}
+			fmt.Printf("--- m dump:\n%s\n\n", string(d))
+
 			//no need for switch/case for now
 			sortedList := make([]string, len(ingress.Rules))
 			index := 0
@@ -112,11 +118,6 @@ func (c *ZorpController) updateZorp() error {
 			}
 		}
 	}
-        d, err := yaml.Marshal(c.cfg)
-        if err != nil {
-                log.Fatalf("error: %v", err)
-        }
-        fmt.Printf("--- m dump:\n%s\n\n", string(d))
 	//handle default service
 	reload, err = c.handleDefaultService(backendsUsed)
 	LogErr(err)
