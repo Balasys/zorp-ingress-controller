@@ -17,7 +17,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -116,7 +118,20 @@ func (c *ZorpController) updateZorp() error {
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
-        fmt.Printf("--- m dump:\n%s\n\n", string(d))
+
+	// write to file
+	f, err := os.Create("/tmp/dat2")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = ioutil.WriteFile("/config-dump.yaml", d, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f.Close()
+
 	//handle default service
 	reload, err = c.handleDefaultService(backendsUsed)
 	LogErr(err)
