@@ -123,12 +123,14 @@ func (c *ZorpController) ZorpInitialize() {
 func (c *ZorpController) ZorpReload() error {
 	if !c.osArgs.Test {
 		cmd := exec.Command("service", "zorp", "reload")
-		err = cmd.Run()
+		err := cmd.Run()
+                if err != nil {
+			return err
+		}
 	} else {
-		err = nil
 		log.Println("Zorp would be reloaded now")
 	}
-	return err
+	return nil
 }
 
 func (c *ZorpController) handlePath(index int, namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath, backendsUsed map[string]struct{}) (needsReload bool, err error) {
