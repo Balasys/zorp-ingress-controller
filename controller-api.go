@@ -26,8 +26,7 @@ func (c *ZorpController) apiDisposeTransaction() {
 }
 
 func (c ZorpController) backendsGet() (models.Backends, error) {
-	_, backends, err := c.cfg.NativeAPI.Configuration.GetBackends(c.ActiveTransaction)
-	return backends, err
+	return nil, nil
 }
 
 func (c ZorpController) backendGet(backendName string) (models.Backend, error) {
@@ -63,7 +62,7 @@ func (c ZorpController) backendServerDelete(backendName string, serverName strin
 }
 
 func (c ZorpController) backendSwitchingRuleCreate(frontend string, rule models.BackendSwitchingRule) error {
-	return c.cfg.NativeAPI.Configuration.CreateBackendSwitchingRule(frontend, &rule, c.ActiveTransaction, 0)
+	return nil
 }
 
 func (c ZorpController) backendSwitchingRuleDeleteAll(frontend string) {

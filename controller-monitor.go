@@ -110,7 +110,7 @@ func (c *ZorpController) monitorChanges() {
 //All the changes must come through this function
 func (c *ZorpController) SyncData(jobChan <-chan SyncDataEvent, chConfigMapReceivedAndProcessed chan bool) {
 	hadChanges := false
-	c.cfg.Init(c.osArgs, c.NativeAPI)
+	c.cfg.Init(c.osArgs)
 	for job := range jobChan {
 		ns := c.cfg.GetNamespace(job.Namespace)
 		change := false

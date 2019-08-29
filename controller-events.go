@@ -307,21 +307,22 @@ func (c *ZorpController) processEndpointIPs(data *Endpoints) (updateRequired boo
 			updateRequired = true
 		case MODIFIED:
 			if data.BackendName != "" {
-				runtimeClient := c.cfg.NativeAPI.Runtime
-				err := runtimeClient.SetServerAddr(data.BackendName, ip.ZorpName, ip.IP, 0)
-				if err != nil {
-					log.Println(err)
-					updateRequired = true
-				}
-				status := "ready"
-				if ip.Disabled {
-					status = "maint"
-				}
-				err = runtimeClient.SetServerState(data.BackendName, ip.ZorpName, status)
-				if err != nil {
-					log.Println(err)
-					updateRequired = true
-				}
+				//actually configure some backends FIXME
+				//runtimeClient := c.cfg.NativeAPI.Runtime
+				//err := runtimeClient.SetServerAddr(data.BackendName, ip.ZorpName, ip.IP, 0)
+				//if err != nil {
+				//	log.Println(err)
+				//	updateRequired = true
+				//}
+				//status := "ready"
+				//if ip.Disabled {
+				//	status = "maint"
+				//}
+				//err = runtimeClient.SetServerState(data.BackendName, ip.ZorpName, status)
+				//if err != nil {
+				//	log.Println(err)
+				//	updateRequired = true
+				//}
 			} else {
 				//this is ok since if exists, we edit current data
 				ip.Status = ADDED
