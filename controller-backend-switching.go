@@ -43,7 +43,7 @@ func (c *ZorpController) useBackendRuleRefresh() (needsReload bool) {
 
 	//frontend, _ := c.frontendGet(FrontendHTTPS)
 	backends := map[string]struct{}{
-		frontend.DefaultBackend: struct{}{},
+		//frontend.DefaultBackend: struct{}{},
 		"RateLimit":             struct{}{},
 	}
 	//for _, frontend := range frontends {
