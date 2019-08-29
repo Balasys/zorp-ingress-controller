@@ -92,6 +92,7 @@ func (c *ZorpController) ZorpInitialize() {
         gid, _ := strconv.Atoi(group.Gid)
         err = syscall.Chown(ZorpCertDir, uid, gid)
         err = syscall.Chown(ZorpStateDir, uid, gid)
+        err = syscall.Chown(ZorpCFG, uid, gid)
 
 
 	log.Println("Starting Zorp with", ZorpCFG)
@@ -375,16 +376,16 @@ func (c *ZorpController) handleService(index int, namespace *Namespace, ingress 
 			c.cfg.UseBackendRulesStatus = MODIFIED
 		}
 	} else if service.Status != EMPTY {
-		http, err := c.frontendGet(FrontendHTTP)
-		LogErr(err)
-		http.DefaultBackend = backendName
-		err = c.frontendEdit(http)
-		LogErr(err)
-		https, err := c.frontendGet(FrontendHTTPS)
-		LogErr(err)
-		https.DefaultBackend = backendName
-		err = c.frontendEdit(https)
-		LogErr(err)
+		//http, err := c.frontendGet(FrontendHTTP)
+		//LogErr(err)
+		//http.DefaultBackend = backendName
+		//err = c.frontendEdit(http)
+		//LogErr(err)
+		//https, err := c.frontendGet(FrontendHTTPS)
+		//LogErr(err)
+		//https.DefaultBackend = backendName
+		//err = c.frontendEdit(https)
+		//LogErr(err)
 		needReload = true
 	}
 
