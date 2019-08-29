@@ -90,6 +90,7 @@ func (c *ZorpController) ZorpInitialize() {
         }
         uid, _ := strconv.Atoi(group.Uid)
         gid, _ := strconv.Atoi(group.Gid)
+        err = syscall.Chown(ZorpCertDir, uid, gid)
         err = syscall.Chown(ZorpStateDir, uid, gid)
 
 
