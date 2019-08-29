@@ -1,6 +1,4 @@
-language: go
-go:
-- 1.9.2
+language: minimal
 services:
 - docker
 sudo: required
