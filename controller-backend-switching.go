@@ -15,11 +15,11 @@
 package main
 
 import (
-	"fmt"
-	"log"
+//	"fmt"
+//	"log"
 	"sort"
 
-	"github.com/haproxytech/models"
+//	"github.com/haproxytech/models"
 )
 
 type BackendSwitchingRule struct {
@@ -33,7 +33,7 @@ func (c *ZorpController) useBackendRuleRefresh() (needsReload bool) {
 	if c.cfg.UseBackendRulesStatus == EMPTY {
 		return needsReload
 	}
-	frontends := []string{FrontendHTTP, FrontendHTTPS}
+	//frontends := []string{FrontendHTTP, FrontendHTTPS}
 
 	sortedList := []string{}
 	for name := range c.cfg.UseBackendRules {
@@ -46,33 +46,33 @@ func (c *ZorpController) useBackendRuleRefresh() (needsReload bool) {
 		frontend.DefaultBackend: struct{}{},
 		"RateLimit":             struct{}{},
 	}
-	for _, frontend := range frontends {
-		var err error
-		c.backendSwitchingRuleDeleteAll(frontend)
-		for _, name := range sortedList {
-			rule := c.cfg.UseBackendRules[name]
-			id := int64(0)
-			var condTest string
-			if rule.Host != "" {
-				condTest = fmt.Sprintf("{ req.hdr(host) -i %s } ", rule.Host)
-			}
-			if rule.Path != "" {
-				condTest = fmt.Sprintf("%s{ path_beg %s }", condTest, rule.Path)
-			}
-			if condTest == "" {
-				log.Println(fmt.Sprintf("Both Host and Path are empty for frontend %s with backend %s, SKIP", frontend, rule.Backend))
-				continue
-			}
-			backends[rule.Backend] = struct{}{}
-			err = c.backendSwitchingRuleCreate(frontend, models.BackendSwitchingRule{
-				Cond:     "if",
-				CondTest: condTest,
-				Name:     rule.Backend,
-				ID:       &id,
-			})
-			LogErr(err)
-		}
-	}
+	//for _, frontend := range frontends {
+	//	var err error
+	//	c.backendSwitchingRuleDeleteAll(frontend)
+	//	for _, name := range sortedList {
+	//		rule := c.cfg.UseBackendRules[name]
+	//		id := int64(0)
+	//		var condTest string
+	//		if rule.Host != "" {
+	//			condTest = fmt.Sprintf("{ req.hdr(host) -i %s } ", rule.Host)
+	//		}
+	//		if rule.Path != "" {
+	//			condTest = fmt.Sprintf("%s{ path_beg %s }", condTest, rule.Path)
+	//		}
+	//		if condTest == "" {
+	//			log.Println(fmt.Sprintf("Both Host and Path are empty for frontend %s with backend %s, SKIP", frontend, rule.Backend))
+	//			continue
+	//		}
+	//		backends[rule.Backend] = struct{}{}
+	//		err = c.backendSwitchingRuleCreate(frontend, models.BackendSwitchingRule{
+	//			Cond:     "if",
+	//			CondTest: condTest,
+	//			Name:     rule.Backend,
+	//			ID:       &id,
+	//		})
+	//		LogErr(err)
+	//	}
+	//}
 	allBackends, _ := c.backendsGet()
 	for _, backend := range allBackends {
 		_, ok := backends[backend.Name]
