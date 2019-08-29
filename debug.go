@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,10 +27,10 @@ func setupTestEnv() {
 	log.Printf("Running in test env")
 	err := os.MkdirAll(TestFolderPath, 0755)
 	LogErr(err)
-	HAProxyCFG = path.Join(TestFolderPath, HAProxyCFG)
-	HAProxyGlobalCFG = path.Join(TestFolderPath, HAProxyGlobalCFG)
-	HAProxyCertDir = path.Join(TestFolderPath, HAProxyCertDir)
-	HAProxyStateDir = path.Join(TestFolderPath, HAProxyStateDir)
+	ZorpCFG = path.Join(TestFolderPath, ZorpCFG)
+	ZorpGlobalCFG = path.Join(TestFolderPath, ZorpGlobalCFG)
+	ZorpCertDir = path.Join(TestFolderPath, ZorpCertDir)
+	ZorpStateDir = path.Join(TestFolderPath, ZorpStateDir)
 	cmd := exec.Command("pwd")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -41,8 +41,8 @@ func setupTestEnv() {
 		log.Fatal(err)
 	}
 	log.Println(dir)
-	copyFile(path.Join(dir, "fs/etc/haproxy/haproxy.cfg"), HAProxyCFG)
-	copyFile(path.Join(dir, "fs/etc/haproxy/global.cfg"), HAProxyGlobalCFG)
+	copyFile(path.Join(dir, "fs/etc/zorp/policy.py"), ZorpCFG)
+	copyFile(path.Join(dir, "fs/etc/zorp/instances.conf"), ZorpGlobalCFG)
 	log.Println(string(out))
 }
 

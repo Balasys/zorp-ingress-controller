@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,25 +17,19 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
-func (c *HAProxyController) updateHAProxy() error {
+func (c *ZorpController) updateZorp() error {
 	needsReload := false
 
-	c.handleDefaultTimeouts()
-	err := c.apiStartTransaction()
-
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	defer func() {
-		c.apiDisposeTransaction()
-	}()
 	maxconnAnn, err := GetValueFromAnnotations("maxconn", c.cfg.ConfigMap.Annotations)
 	if err == nil {
 		if maxconnAnn.Status == DELETED {
@@ -120,6 +114,24 @@ func (c *HAProxyController) updateHAProxy() error {
 			}
 		}
 	}
+        d, err := yaml.Marshal(c.cfg)
+        if err != nil {
+                log.Fatalf("error: %v", err)
+        }
+
+	// write to file
+	f, err := os.Create("/tmp/dat2")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = ioutil.WriteFile("/config-dump.yaml", d, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f.Close()
+
 	//handle default service
 	reload, err = c.handleDefaultService(backendsUsed)
 	LogErr(err)
@@ -136,23 +148,18 @@ func (c *HAProxyController) updateHAProxy() error {
 	reload = c.useBackendRuleRefresh()
 	needsReload = needsReload || reload
 
-	err = c.apiCommitTransaction()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 	c.cfg.Clean()
 	if needsReload {
-		if err := c.HAProxyReload(); err != nil {
+		if err := c.ZorpReload(); err != nil {
 			log.Println(err)
 		} else {
-			log.Println("HAProxy reloaded")
+			log.Println("Zorp reloaded")
 		}
 	}
 	return nil
 }
 
-func (c *HAProxyController) handleMaxconn(maxconn *int64, frontends ...string) error {
+func (c *ZorpController) handleMaxconn(maxconn *int64, frontends ...string) error {
 	for _, frontendName := range frontends {
 		if frontend, err := c.frontendGet(frontendName); err == nil {
 			frontend.Maxconn = maxconn
@@ -165,7 +172,7 @@ func (c *HAProxyController) handleMaxconn(maxconn *int64, frontends ...string) e
 	return nil
 }
 
-func (c *HAProxyController) handleDefaultService(backendsUsed map[string]struct{}) (needsReload bool, err error) {
+func (c *ZorpController) handleDefaultService(backendsUsed map[string]struct{}) (needsReload bool, err error) {
 	needsReload = false
 	dsvcData, _ := GetValueFromAnnotations("default-backend-service")
 	dsvc := strings.Split(dsvcData.Value, "/")

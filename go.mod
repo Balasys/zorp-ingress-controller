@@ -1,4 +1,4 @@
-module github.com/haproxytech/kubernetes-ingress
+module github.com/Balasys/zorp-ingress-controller
 
 go 1.12
 

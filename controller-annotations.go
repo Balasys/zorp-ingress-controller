@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import (
 	"github.com/haproxytech/models"
 )
 
-func (c *HAProxyController) handleDefaultTimeouts() bool {
+func (c *ZorpController) handleDefaultTimeouts() bool {
 	hasChanges := false
 	hasChanges = c.handleDefaultTimeout("http-request", true) || hasChanges
 	hasChanges = c.handleDefaultTimeout("connect", true) || hasChanges
@@ -36,13 +36,13 @@ func (c *HAProxyController) handleDefaultTimeouts() bool {
 	//timeout check is put in every backend, no need to put it here
 	//hasChanges = c.handleDefaultTimeout("check", false) || hasChanges
 	if hasChanges {
-		err := c.NativeParser.Save(HAProxyGlobalCFG)
+		err := c.NativeParser.Save(ZorpGlobalCFG)
 		LogErr(err)
 	}
 	return hasChanges
 }
 
-func (c *HAProxyController) handleDefaultTimeout(timeout string, hasDefault bool) bool {
+func (c *ZorpController) handleDefaultTimeout(timeout string, hasDefault bool) bool {
 	client := c.NativeParser
 	annTimeout, err := GetValueFromAnnotations(fmt.Sprintf("timeout-%s", timeout), c.cfg.ConfigMap.Annotations)
 	if err != nil {
@@ -74,7 +74,7 @@ func (c *HAProxyController) handleDefaultTimeout(timeout string, hasDefault bool
 	return false
 }
 
-func (c *HAProxyController) handleBackendAnnotations(balanceAlg *models.Balance, forwardedFor *StringW, backendName string) (needsReload bool, err error) {
+func (c *ZorpController) handleBackendAnnotations(balanceAlg *models.Balance, forwardedFor *StringW, backendName string) (needsReload bool, err error) {
 	needsReload = false
 	backend := models.Backend{
 		Balance: balanceAlg,

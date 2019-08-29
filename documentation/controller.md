@@ -1,12 +1,12 @@
-# ![HAProxy](../assets/images/haproxy-weblogo-210x49.png "HAProxy")
+# ![Zorp](../assets/images/balasys-logo.png "Zorp")
 
-## HAProxy kubernetes ingress controller
+## Zorp kubernetes ingress controller
 
 you can run image with arguments:
 
 - `--configmap`
   - mandatory, must be in format `namespace/name`
-  - default `default/haproxy-configmap`
+  - default `default/zorp-configmap`
 - `--default-backend-service`
   - must be in format `namespace/name`
 - `--default-ssl-certificate`

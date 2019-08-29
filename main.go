@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,20 +23,23 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-// fixed paths to haproxy items
+// fixed paths to zorp items
 const (
 	FrontendHTTP   = "http"
 	FrontendHTTPS  = "https"
-	TestFolderPath = "/tmp/haproxy-ingress/"
+	TestFolderPath = "/tmp/zorp-ingress/"
 	LogTypeShort   = log.LstdFlags
 	LogType        = log.LstdFlags | log.Lshortfile
 )
 
 var (
-	HAProxyCFG       = "/etc/haproxy/haproxy.cfg"
-	HAProxyGlobalCFG = "/etc/haproxy/global.cfg"
-	HAProxyCertDir   = "/etc/haproxy/certs/"
-	HAProxyStateDir  = "/var/state/haproxy/"
+	ZorpCFG       = "/etc/zorp/policy.py"
+	ZorpGlobalCFG = "/etc/zorp/instances.conf"
+	ZorpCertDir   = "/etc/zorp/certs/"
+        ZorpFrontendDir = "/etc/zorp/frontends/"
+	ZorpBackendDir = "/etc/zorp/backends/"
+	ZorpServiceDir = "/etc/zorp/services/"
+	ZorpStateDir  = "/var/run/zorp/"
 )
 
 func main() {
@@ -55,7 +58,7 @@ func main() {
 	}
 
 	if len(osArgs.Version) > 0 {
-		fmt.Printf("HAProxy Ingress Controller %s %s%s\n\n", GitTag, GitCommit, GitDirty)
+		fmt.Printf("Zorp Ingress Controller %s %s%s\n\n", GitTag, GitCommit, GitDirty)
 		fmt.Printf("Build from: %s\n", GitRepo)
 		fmt.Printf("Build date: %s\n\n", BuildTime)
 		if len(osArgs.Version) > 1 {
@@ -71,7 +74,7 @@ func main() {
 	}
 
 	log.Println(IngressControllerInfo)
-	log.Printf("HAProxy Ingress Controller %s %s%s\n\n", GitTag, GitCommit, GitDirty)
+	log.Printf("Zorp Ingress Controller %s %s%s\n\n", GitTag, GitCommit, GitDirty)
 	log.Printf("Build from: %s\n", GitRepo)
 	log.Printf("Build date: %s\n\n", BuildTime)
 	log.Printf("ConfigMap: %s/%s\n", osArgs.ConfigMap.Namespace, osArgs.ConfigMap.Name)
@@ -87,8 +90,8 @@ func main() {
 		setupTestEnv()
 	}
 
-	hAProxyController := HAProxyController{}
-	hAProxyController.Start(osArgs)
+	zorpController := ZorpController{}
+	zorpController.Start(osArgs)
 
 	//TODO wait channel
 	for {

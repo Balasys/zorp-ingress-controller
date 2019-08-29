@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,20 +19,21 @@ import (
 	"log"
 	"os"
 	"os/exec"
+        "os/user"
 	"strconv"
 	"strings"
+        "syscall"
 
 	clientnative "github.com/haproxytech/client-native"
 	"github.com/haproxytech/client-native/configuration"
 	"github.com/haproxytech/client-native/misc"
-	"github.com/haproxytech/client-native/runtime"
 	parser "github.com/haproxytech/config-parser"
 	"github.com/haproxytech/models"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-// HAProxyController is ingress controller
-type HAProxyController struct {
+// ZorpController is ingress controller
+type ZorpController struct {
 	k8s               *K8s
 	cfg               Configuration
 	osArgs            OSArgs
@@ -43,12 +44,12 @@ type HAProxyController struct {
 	serverlessPods    map[string]int
 }
 
-// Start initialize and run HAProxyController
-func (c *HAProxyController) Start(osArgs OSArgs) {
+// Start initialize and run ZorpController
+func (c *ZorpController) Start(osArgs OSArgs) {
 
 	c.osArgs = osArgs
 
-	c.HAProxyInitialize()
+	c.ZorpInitialize()
 
 	var k8s *K8s
 	var err error
@@ -72,44 +73,42 @@ func (c *HAProxyController) Start(osArgs OSArgs) {
 	go c.monitorChanges()
 }
 
-//HAProxyInitialize runs HAProxy for the first time so native client can have access to it
-func (c *HAProxyController) HAProxyInitialize() {
-	//cmd := exec.Command("haproxy", "-f", HAProxyCFG)
-	err := os.MkdirAll(HAProxyCertDir, 0755)
+//ZorpInitialize runs Zorp for the first time so native client can have access to it
+func (c *ZorpController) ZorpInitialize() {
+	//cmd := exec.Command("zorp", "-f", ZorpCFG)
+	err := os.MkdirAll(ZorpCertDir, 0755)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = os.MkdirAll(HAProxyStateDir, 0755)
+	err = os.MkdirAll(ZorpStateDir, 0775)
 	if err != nil {
 		log.Panic(err.Error())
 	}
+        group, err := user.Lookup("zorp")
+        if err != nil {
+                log.Panic(err.Error())
+        }
+        uid, _ := strconv.Atoi(group.Uid)
+        gid, _ := strconv.Atoi(group.Gid)
+        err = syscall.Chown(ZorpCertDir, uid, gid)
+        err = syscall.Chown(ZorpStateDir, uid, gid)
+        err = syscall.Chown(ZorpCFG, uid, gid)
 
-	log.Println("Starting HAProxy with", HAProxyCFG)
+
+	log.Println("Starting Zorp with", ZorpCFG)
 	if !c.osArgs.Test {
-		cmd := exec.Command("service", "haproxy", "start")
+		cmd := exec.Command("/etc/init.d/zorp", "start")
 		err = cmd.Run()
 		if err != nil {
 			log.Println(err)
 		}
 	}
 
-	c.NativeParser = parser.Parser{}
-	err = c.NativeParser.LoadData(HAProxyGlobalCFG)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	runtimeClient := runtime.Client{}
-	err = runtimeClient.Init([]string{"/var/run/haproxy-runtime-api.sock"}, "", 0)
-	if err != nil {
-		log.Panicln(err)
-	}
-
 	confClient := configuration.Client{}
 	err = confClient.Init(configuration.ClientParams{
-		ConfigurationFile:      HAProxyCFG,
+		ConfigurationFile:      ZorpCFG,
 		PersistentTransactions: false,
-		Haproxy:                "haproxy",
+		Haproxy:                "zorp",
 	})
 	if err != nil {
 		log.Panicln(err)
@@ -117,54 +116,24 @@ func (c *HAProxyController) HAProxyInitialize() {
 
 	c.NativeAPI = &clientnative.HAProxyClient{
 		Configuration: &confClient,
-		Runtime:       &runtimeClient,
+		Runtime:       nil,
 	}
 }
 
-func (c *HAProxyController) saveServerState() error {
-	result, err := c.NativeAPI.Runtime.ExecuteRaw("show servers state")
-	if err != nil {
-		return err
-	}
-	var f *os.File
-	if f, err = os.Create(HAProxyStateDir + "global"); err != nil {
-		log.Println(err)
-		return err
-	}
-	defer f.Close()
-	if _, err = f.Write([]byte(result[0])); err != nil {
-		log.Println(err)
-		return err
-	}
-	if err = f.Sync(); err != nil {
-		log.Println(err)
-		return err
-	}
-	if err = f.Close(); err != nil {
-		log.Println(err)
-		return err
+func (c *ZorpController) ZorpReload() error {
+	if !c.osArgs.Test {
+		cmd := exec.Command("service", "zorp", "reload")
+		err := cmd.Run()
+                if err != nil {
+			return err
+		}
+	} else {
+		log.Println("Zorp would be reloaded now")
 	}
 	return nil
 }
 
-func (c *HAProxyController) HAProxyReload() error {
-	err := c.NativeParser.Save(HAProxyGlobalCFG)
-	if err != nil {
-		return err
-	}
-	err = c.saveServerState()
-	LogErr(err)
-	if !c.osArgs.Test {
-		cmd := exec.Command("service", "haproxy", "reload")
-		err = cmd.Run()
-	} else {
-		err = nil
-		log.Println("HAProxy would be reloaded now")
-	}
-	return err
-}
-
-func (c *HAProxyController) handlePath(index int, namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath, backendsUsed map[string]struct{}) (needsReload bool, err error) {
+func (c *ZorpController) handlePath(index int, namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath, backendsUsed map[string]struct{}) (needsReload bool, err error) {
 	needsReload = false
 	backendName, service, reload, err := c.handleService(index, namespace, ingress, rule, path)
 	needsReload = needsReload || reload
@@ -191,7 +160,7 @@ func (c *HAProxyController) handlePath(index int, namespace *Namespace, ingress 
 	return needsReload, nil
 }
 
-func (c *HAProxyController) handleEndpointIP(namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath, service *Service, backendName string, endpoints *Endpoints, ip *EndpointIP) (needsReload bool) {
+func (c *ZorpController) handleEndpointIP(namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath, service *Service, backendName string, endpoints *Endpoints, ip *EndpointIP) (needsReload bool) {
 	needsReload = false
 	annMaxconn, errMaxConn := GetValueFromAnnotations("pod-maxconn", service.Annotations)
 	annCheck, _ := GetValueFromAnnotations("check", service.Annotations, ingress.Annotations, c.cfg.ConfigMap.Annotations)
@@ -215,7 +184,7 @@ func (c *HAProxyController) handleEndpointIP(namespace *Namespace, ingress *Ingr
 	}
 	weight := int64(128)
 	data := models.Server{
-		Name:    ip.HAProxyName,
+		Name:    ip.ZorpName,
 		Address: ip.IP,
 		Port:    &port,
 		Weight:  &weight,
@@ -288,7 +257,7 @@ func (c *HAProxyController) handleEndpointIP(namespace *Namespace, ingress *Ingr
 		if ip.Disabled {
 			status = "maint"
 		}
-		log.Printf("Modified: %s - %s - %v\n", backendName, ip.HAProxyName, status)
+		log.Printf("Modified: %s - %s - %v\n", backendName, ip.ZorpName, status)
 	case DELETED:
 		err := c.backendServerDelete(backendName, data.Name)
 		if err != nil && !strings.Contains(err.Error(), "does not exist") {
@@ -299,7 +268,7 @@ func (c *HAProxyController) handleEndpointIP(namespace *Namespace, ingress *Ingr
 	return needsReload
 }
 
-func (c *HAProxyController) handleService(index int, namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath) (backendName string, service *Service, needReload bool, err error) {
+func (c *ZorpController) handleService(index int, namespace *Namespace, ingress *Ingress, rule *IngressRule, path *IngressPath) (backendName string, service *Service, needReload bool, err error) {
 	needReload = false
 
 	service, ok := namespace.Services[path.ServiceName]
@@ -404,16 +373,16 @@ func (c *HAProxyController) handleService(index int, namespace *Namespace, ingre
 			c.cfg.UseBackendRulesStatus = MODIFIED
 		}
 	} else if service.Status != EMPTY {
-		http, err := c.frontendGet(FrontendHTTP)
-		LogErr(err)
-		http.DefaultBackend = backendName
-		err = c.frontendEdit(http)
-		LogErr(err)
-		https, err := c.frontendGet(FrontendHTTPS)
-		LogErr(err)
-		https.DefaultBackend = backendName
-		err = c.frontendEdit(https)
-		LogErr(err)
+		//http, err := c.frontendGet(FrontendHTTP)
+		//LogErr(err)
+		//http.DefaultBackend = backendName
+		//err = c.frontendEdit(http)
+		//LogErr(err)
+		//https, err := c.frontendGet(FrontendHTTPS)
+		//LogErr(err)
+		//https.DefaultBackend = backendName
+		//err = c.frontendEdit(https)
+		//LogErr(err)
 		needReload = true
 	}
 

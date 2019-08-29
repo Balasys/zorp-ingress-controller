@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"github.com/haproxytech/models"
 )
 
-func (c *HAProxyController) writeCert(filename string, key, crt []byte) error {
+func (c *ZorpController) writeCert(filename string, key, crt []byte) error {
 	var f *os.File
 	var err error
 	if f, err = os.Create(filename); err != nil {
@@ -51,7 +51,7 @@ func (c *HAProxyController) writeCert(filename string, key, crt []byte) error {
 	return nil
 }
 
-func (c *HAProxyController) handleHTTPS() (reloadRequested bool, usingHTTPS bool, err error) {
+func (c *ZorpController) handleHTTPS() (reloadRequested bool, usingHTTPS bool, err error) {
 	usingHTTPS = false
 	reloadRequested = false
 	status := EMPTY
@@ -88,7 +88,7 @@ func (c *HAProxyController) handleHTTPS() (reloadRequested bool, usingHTTPS bool
 		//log.Println(secretName.Value, rsaCrtOK, rsaKeyOK, ecdsaCrtOK, ecdsaKeyOK)
 		if rsaKeyOK && rsaCrtOK || ecdsaKeyOK && ecdsaCrtOK {
 			if rsaKeyOK && rsaCrtOK {
-				errCrt := c.writeCert(HAProxyCertDir+"cert.pem.rsa", rsaKey, rsaCrt)
+				errCrt := c.writeCert(ZorpCertDir+"cert.pem.rsa", rsaKey, rsaCrt)
 				if errCrt != nil {
 					err1 := c.removeHTTPSListeners()
 					LogErr(err1)
@@ -97,7 +97,7 @@ func (c *HAProxyController) handleHTTPS() (reloadRequested bool, usingHTTPS bool
 				haveCert = true
 			}
 			if ecdsaKeyOK && ecdsaCrtOK {
-				errCrt := c.writeCert(HAProxyCertDir+"cert.pem.ecdsa", ecdsaKey, ecdsaCrt)
+				errCrt := c.writeCert(ZorpCertDir+"cert.pem.ecdsa", ecdsaKey, ecdsaCrt)
 				if errCrt != nil {
 					err1 := c.removeHTTPSListeners()
 					LogErr(err1)
@@ -109,7 +109,7 @@ func (c *HAProxyController) handleHTTPS() (reloadRequested bool, usingHTTPS bool
 			tlsKey, tlsKeyOK := secret.Data["tls.key"]
 			tlsCrt, tlsCrtOK := secret.Data["tls.crt"]
 			if tlsKeyOK && tlsCrtOK {
-				errCrt := c.writeCert(HAProxyCertDir+"cert.pem", tlsKey, tlsCrt)
+				errCrt := c.writeCert(ZorpCertDir+"cert.pem", tlsKey, tlsCrt)
 				if errCrt != nil {
 					err1 := c.removeHTTPSListeners()
 					LogErr(err1)
@@ -131,7 +131,7 @@ func (c *HAProxyController) handleHTTPS() (reloadRequested bool, usingHTTPS bool
 			Port:           &port,
 			Name:           "bind_1",
 			Ssl:            true,
-			SslCertificate: HAProxyCertDir,
+			SslCertificate: ZorpCertDir,
 		}
 		listenerV4v6 := models.Bind{
 			Address:        "::",
@@ -140,7 +140,7 @@ func (c *HAProxyController) handleHTTPS() (reloadRequested bool, usingHTTPS bool
 			Name:           "bind_2",
 			V4v6:           true,
 			Ssl:            true,
-			SslCertificate: HAProxyCertDir,
+			SslCertificate: ZorpCertDir,
 		}
 		usingHTTPS = true
 		switch status {

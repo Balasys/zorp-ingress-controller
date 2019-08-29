@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package main
 
 import (
-	clientnative "github.com/haproxytech/client-native"
 	"github.com/haproxytech/models"
 )
 
@@ -37,7 +36,6 @@ type Configuration struct {
 	Namespace             map[string]*Namespace
 	NamespacesAccess      NamespacesWatch
 	ConfigMap             *ConfigMap
-	NativeAPI             *clientnative.HAProxyClient
 	SSLRedirect           string
 	RateLimitingEnabled   bool
 	HTTPRequests          map[string][]models.HTTPRequestRule
@@ -61,7 +59,7 @@ func (c *Configuration) IsRelevantNamespace(namespace string) bool {
 }
 
 //Init itialize configuration
-func (c *Configuration) Init(osArgs OSArgs, api *clientnative.HAProxyClient) {
+func (c *Configuration) Init(osArgs OSArgs) {
 
 	c.NamespacesAccess = NamespacesWatch{
 		Whitelist: map[string]struct{}{},
@@ -77,7 +75,6 @@ func (c *Configuration) Init(osArgs OSArgs, api *clientnative.HAProxyClient) {
 	}
 	c.Namespace = make(map[string]*Namespace)
 	c.SSLRedirect = ""
-	c.NativeAPI = api
 
 	c.HTTPRequests = map[string][]models.HTTPRequestRule{}
 	c.HTTPRequests[RATE_LIMIT] = []models.HTTPRequestRule{}

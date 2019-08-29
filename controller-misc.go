@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"github.com/haproxytech/models"
 )
 
-func (c *HAProxyController) handleGlobalAnnotations() (reloadRequested bool, err error) {
+func (c *ZorpController) handleGlobalAnnotations() (reloadRequested bool, err error) {
 	reloadRequested = false
 	maxProcs := goruntime.GOMAXPROCS(0)
 	numThreads := int64(maxProcs)
@@ -51,11 +51,11 @@ func (c *HAProxyController) handleGlobalAnnotations() (reloadRequested bool, err
 	return reloadRequested, err
 }
 
-func (c *HAProxyController) removeHTTPSListeners() (err error) {
+func (c *ZorpController) removeHTTPSListeners() (err error) {
 	return nil
 }
 
-func (c *HAProxyController) handleHTTPRedirect(usingHTTPS bool) (reloadRequested bool, err error) {
+func (c *ZorpController) handleHTTPRedirect(usingHTTPS bool) (reloadRequested bool, err error) {
 	//see if we need to add redirect to https redirect scheme https if !{ ssl_fc }
 	// no need for error checking, we have default value,
 	//if not defined as OFF, we always do redirect

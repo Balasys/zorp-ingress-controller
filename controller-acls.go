@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"github.com/haproxytech/models"
 )
 
-func (c *HAProxyController) addACL(acl models.ACL, frontends ...string) {
+func (c *ZorpController) addACL(acl models.ACL, frontends ...string) {
 	if len(frontends) == 0 {
 		frontends = []string{FrontendHTTP, FrontendHTTPS}
 	}
@@ -40,7 +40,7 @@ func (c *HAProxyController) addACL(acl models.ACL, frontends ...string) {
 	}
 }
 
-func (c *HAProxyController) removeACL(acl models.ACL, frontends ...string) {
+func (c *ZorpController) removeACL(acl models.ACL, frontends ...string) {
 	for _, frontend := range frontends {
 		acls, err := c.frontendACLsGet(frontend)
 		if err == nil {

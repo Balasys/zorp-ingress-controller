@@ -1,4 +1,4 @@
-// Copyright 2019 HAProxy Technologies LLC
+// Copyright 2019 Balasys
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ type ServicePorts []*ServicePort
 type EndpointIP struct {
 	IP          string
 	Name        string
-	HAProxyName string
+	ZorpName string
 	Disabled    bool
 	Status      Status
 }
