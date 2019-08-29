@@ -4,7 +4,7 @@ services:
 sudo: required
 script:
 - docker build -t balasys/zorp-ingress -f build/Dockerfile .
-- docker login -u="$(DOCKER_USR)" -p="$(DOCKER_PWD)"
+- docker login -u="${DOCKER_USR}" -p="${DOCKER_PWD}"
 - docker push balasys/zorp-ingress:latest 
 env:
   global:
