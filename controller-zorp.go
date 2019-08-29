@@ -148,11 +148,6 @@ func (c *ZorpController) updateZorp() error {
 	reload = c.useBackendRuleRefresh()
 	needsReload = needsReload || reload
 
-	err = c.apiCommitTransaction()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 	c.cfg.Clean()
 	if needsReload {
 		if err := c.ZorpReload(); err != nil {
