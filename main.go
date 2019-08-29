@@ -36,6 +36,9 @@ var (
 	ZorpCFG       = "/etc/zorp/policy.py"
 	ZorpGlobalCFG = "/etc/zorp/instances.conf"
 	ZorpCertDir   = "/etc/zorp/certs/"
+        ZorpFrontendDir = "/etc/zorp/frontends/"
+	ZorpBackendDir = "/etc/zorp/backends/"
+	ZorpServiceDir = "/etc/zorp/services/"
 	ZorpStateDir  = "/var/run/zorp/"
 )
 

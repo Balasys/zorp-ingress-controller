@@ -21,21 +21,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 func (c *ZorpController) updateZorp() error {
 	needsReload := false
 
-	c.handleDefaultTimeouts()
-	err := c.apiStartTransaction()
-
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	defer func() {
-		c.apiDisposeTransaction()
-	}()
 	maxconnAnn, err := GetValueFromAnnotations("maxconn", c.cfg.ConfigMap.Annotations)
 	if err == nil {
 		if maxconnAnn.Status == DELETED {
@@ -120,6 +112,11 @@ func (c *ZorpController) updateZorp() error {
 			}
 		}
 	}
+        d, err := yaml.Marshal(c.cfg)
+        if err != nil {
+                log.Fatalf("error: %v", err)
+        }
+        fmt.Printf("--- m dump:\n%s\n\n", string(d))
 	//handle default service
 	reload, err = c.handleDefaultService(backendsUsed)
 	LogErr(err)
