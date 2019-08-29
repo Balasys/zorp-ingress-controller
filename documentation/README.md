@@ -1,4 +1,4 @@
-# ![Zorp](../assets/images/balasys-logo.svg "Zorp")
+# ![Zorp](../assets/images/balasys-logo.png "Zorp")
 
 ## Zorp kubernetes ingress controller
 

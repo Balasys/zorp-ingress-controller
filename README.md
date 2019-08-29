@@ -1,12 +1,10 @@
-# ![Zorp](https://github.com/Balasys/zorp-ingress-controller/raw/master/assets/images/balasys-logo.svg "Balasys")
+# ![Zorp](https://github.com/Balasys/zorp-ingress-controller/raw/master/assets/images/balasys-logo.png "Balasys")
 
 ## Zorp Kubernetes Ingress Controller
 
 ### Description
 
 An ingress controller is a Kubernetes resource that routes traffic from outside your cluster to services within the cluster. 
-
-Detailed documentation can be found within the [Official Documentation](https://www.zorp.com/documentation/hapee/1-9r1/traffic-management/kubernetes-ingress-controller/)
 
 ### Usage
 
@@ -28,7 +26,7 @@ kubectl apply -f deploy/zorp-ingress.yaml
 
 ### Contributing
 
-For commit messages and general style please follow the zorp project's [CONTRIBUTING guide](https://github.com/zorp/zorp/blob/master/CONTRIBUTING) and use that where applicable.
+For commit messages and general style please follow the zorp project's [CONTRIBUTING guide](https://github.com/Balasys/zorp/blob/master/CONTRIBUTING) and use that where applicable.
 
 Please use `golangci-lint run` from [github.com/golangci/golangci-lint](https://github.com/golangci/golangci-lint) for linting code.
 
