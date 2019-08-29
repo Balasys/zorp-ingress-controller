@@ -19,6 +19,7 @@ class HealthzHttpProxy(HttpProxy):
 
         def reqRedirect(self, method, url, version):
                 self.error_status = 200
+                self.error_msg = OK
                 self.error_info = 'HTTP/1.0 200 OK'
                 return HTTP_REQ_REJECT
 
