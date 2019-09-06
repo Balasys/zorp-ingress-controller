@@ -27,7 +27,7 @@ class KubernetesBackend:
 
             self._logger.info('Initializing Kubernetes Client.')
 
-            config.load_kube_config()
+            config.load_incluster_config()
 
             # self._api = client.CoreV1Api()
             self._ext_api = client.ExtensionsV1beta1Api()
