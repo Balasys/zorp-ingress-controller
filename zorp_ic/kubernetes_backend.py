@@ -79,7 +79,7 @@ class KubernetesBackend:
     def _get_ingress_spec(self, ingress):
         services = []
         rules = {}
-        for rule in rules:
+        for rule in ingress.spec.rules:
             paths = {}
             for path in rule.http.paths:
                 paths[path.path] = {"service": path.backend.service_name, "port": path.backend.service_port}
