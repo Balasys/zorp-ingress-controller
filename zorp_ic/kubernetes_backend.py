@@ -92,6 +92,9 @@ class KubernetesBackend:
             spec["default"] = {"service": backend_service, "port": backend_port}
             services.append(backend_service)
         spec["services"] = services
+        annotations = ingress.metadata.annotations
+        if "balasys.hu/zorp-ingress-conf" in annotations:
+            spec["annotations"] = annotations["balasys.hu/zorp-ingress-conf"]
         return spec
 
     def get_relevant_ingresses(self):
