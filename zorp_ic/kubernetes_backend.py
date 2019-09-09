@@ -74,7 +74,7 @@ class KubernetesBackend:
     def get_relevant_ingresses(self):
         ingresses = []
         ingress_list = self.get_ingresses()
-        for ingress in ingress_list:
+        for ingress in ingress_list.items:
             annotation = ingress.metadata.annotation
             if "kubernetes.io/ingress.class" in annotation:
                 if annotation["kubernetes.io/ingress.class"] == self.ingress_class:
