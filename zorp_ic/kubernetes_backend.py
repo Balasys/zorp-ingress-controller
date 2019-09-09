@@ -66,8 +66,8 @@ class KubernetesBackend:
 
             raise KubernetesBackendError()
 
-        if api_response.data is None:
-            api_response.data = {}
+        if api_response.items is None:
+            api_response.items = {}
 
         pprint(api_response)
 
