@@ -133,15 +133,17 @@ class KubernetesBackend:
             relevant_services.append(service.metadata.name)
         endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.subsets is not None:
+            if endpoint.metadta.name in relevant_services:
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
-                        ref = address.target_ref
-                        if ref in relevant_services:
-                            if ref in endpoints:
-                                endpoints[ref].append(address.ip)
+                        for port in subset.ports:
+                            if endpoint.metadata.name in endpoints:
+                                if port.protocol in endpoints[endpoint.metadata.name]:
+                                    endpoints[endpoint.metadata.name][port.protocol].append("%s:%s" % (address.ip, address.port))
+                                else:
+                                    endpoints[endpoint.metadata.name][port.protocol] = ["%s:%s" % (address.ip, address.port, ]
                             else:
-                                endpoints[ref] = [address.ip, ]
+                                endpoints[endpoint.metadata.name] = { port.protocol : ["%s:%s" % (address.ip, address.port, ]}
         return set(endpoints)
 
     def _is_secret_initialized(self):
