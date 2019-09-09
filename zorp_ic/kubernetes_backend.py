@@ -48,20 +48,6 @@ class KubernetesBackend:
         namespace = object.metadata.namespace
         return "%s/%s" % (name, namespace)
 
-    def get_ingress_annotations(self):
-        ingress = self._ext_api.read_namespaced_ingress("name", self.namespace)
-        annotations = ingress.metadata.annotations
-        # spec = ingress.spec
-
-        policy = dict()
-        policy['conf'] = annotations['zorpingress']
-
-        return policy
-
-    def get_service_network_config(self):
-        pass
-
-
     def _get_ingresses(self):
         try:
             api_response = self._ext_api.list_ingress_for_all_namespaces()
@@ -179,7 +165,7 @@ class KubernetesBackend:
 
     def _get_secret(self):
         try:
-            secret = self._api.read_namespaced_secret('micado.networksecret', 'default')
+            secret = self._api.read_namespaced_secret(self.namespace, 'tls-secret')
         except Exception as error:
             self._logger.error('Failed to read K8S Secret.')
             self._logger.info(error)
@@ -202,4 +188,4 @@ class KubernetesBackend:
     def list_secrets(self):
         secret = self._get_secret()
 
-        return secret.data.keys()
+        return base64.b64decode(secret.data.keys())

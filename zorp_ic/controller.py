@@ -22,6 +22,9 @@ class ZorpConfig():
         self.ingresses = self.k8s.get_relevant_ingresses()
         self.services = self.k8s.get_relevant_services(self.ingresses)
         self.endpoints = self.k8s.get_relevant_endpoints(self.services)
+        self.secrets= {}
+        for secret_name in self.k8s.list_secrets():
+            self.secrets[secret_name] = self.k8s.get_secret(secretname)
 
 def process_k8s_changes(namespace, ingress_class):
     zorpConfig = ZorpConfig(namespace, ingress_class)
