@@ -77,7 +77,7 @@ class KubernetesBackend:
         return api_response
 
     def get_relevant_ingresses(self):
-        ingresses = []
+        ingresses = {}
         ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
             annotations = ingress.metadata.annotations
@@ -87,7 +87,7 @@ class KubernetesBackend:
                 else:
                     self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (self._getName(ingress), annotations["kubernetes.io/ingress.class"]))
             else:
-                ingresses.append(ingress)
+                ingresses[ingress.metadata.name] = ingress.spec
         return ingresses
 
     def _get_services(self):
@@ -106,10 +106,10 @@ class KubernetesBackend:
 
     def get_relevant_services(self, ingresses):
         relevant_services = []
-        for ingress in ingresses:
-            if ingress.spec.backend is not None:
-                relevant_services.append(ingress.spec.backend.service_name)
-            for rule in ingress.spec.rules:
+        for ingress in ingresses.values():
+            if ingress.backend is not None:
+                relevant_services.append(ingress.backend.service_name)
+            for rule in ingress.rules:
                 for path in rule.http.paths:
                     relevant_services.append(path.backend.service_name)
         services = {}
