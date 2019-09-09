@@ -17,19 +17,21 @@ class KubernetesBackend:
 
     _api = None
 
-    def __init__(self):
+    def __init__(self, namespace, ingress_class):
 
         # The Borg Singleton
         self.__dict__ = self.__shared_state
+        self.namespace = namespace
+        self.ingress_class = ingress_class
 
-        if not self._api:
+        if not self._api or not self._ext_api:
             self._logger = logging.getLogger('flask.app')
 
             self._logger.info('Initializing Kubernetes Client.')
 
             config.load_incluster_config()
 
-            # self._api = client.CoreV1Api()
+            self._api = client.CoreV1Api()
             self._ext_api = client.ExtensionsV1beta1Api()
 
             if self._is_secret_initialized():
@@ -42,7 +44,7 @@ class KubernetesBackend:
                 self._logger.info('K8S Secret initalized.')
 
     def get_ingress_annotations(self):
-        ingress = self._ext_api.read_namespaced_ingress("name", "namespace")
+        ingress = self._ext_api.read_namespaced_ingress("name", self.namespace)
         annotations = ingress.metadata.annotations
         # spec = ingress.spec
 
@@ -53,6 +55,23 @@ class KubernetesBackend:
 
     def get_service_network_config(self):
         pass
+
+
+    def get_ingresses(self):
+        try:
+            api_response = api_instance.list_ingress_for_all_namespaces()
+        except Exception as error:
+            self._logger.error('Failed to list K8S Ingresses.')
+            self._logger.info(error)
+
+            raise KubernetesBackendError()
+
+        if api_response.data is None:
+            api_response.data = {}
+
+        pprint(api_response)
+
+        return api_response
 
     def _is_secret_initialized(self):
         try:
