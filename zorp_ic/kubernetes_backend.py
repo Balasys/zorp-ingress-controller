@@ -111,7 +111,7 @@ class KubernetesBackend:
         for service in self._get_services().items:
             if service.metadata.name in relevant_services:
                 services.append(service)
-        return set(services)
+        return services
 
     def _get_endpoints(self):
         try:
@@ -133,11 +133,15 @@ class KubernetesBackend:
             relevant_services.append(service.metadata.name)
         endpoints = {}
         for endpoint in self._get_endpoints().items:
-            for subset in endpoint.subsets:
-                for address in subsets.addresses:
-                    ref = address.target_ref
-                    if ref in relevant_services:
-                        endpoints[ref] = address.ip
+            if endpoint.subsets is not None:
+                for subset in endpoint.subsets:
+                    for address in subsets.addresses:
+                        ref = address.target_ref
+                        if ref in relevant_services:
+                            if ref in endpoints:
+                                endpoints[ref].append(address.ip)
+                            else:
+                                endpoints[ref] = [address.ip, ]
         return set(endpoints)
 
     def _is_secret_initialized(self):
