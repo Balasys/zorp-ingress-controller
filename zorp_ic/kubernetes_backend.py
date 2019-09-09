@@ -80,7 +80,7 @@ class KubernetesBackend:
                 if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
                     ingresses.append(ingress)
                 else:
-                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (ingress.name, annotations["kubernetes.io/ingress.class"]))
+                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (ingress.metadata.name, annotations["kubernetes.io/ingress.class"]))
             else:
                 ingresses.append(ingress)
         return ingresses
