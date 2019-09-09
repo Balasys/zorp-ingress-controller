@@ -14,10 +14,10 @@ class ZorpConfig():
 
     def generate_config(self):
         f = open("/tmp/k8s-config", "w")
-        f.write(self.ingresses+"\n")
-        f.write(self.services+"\n")
-        f.write(self.endpoints+"\n")
-        f.write(self.secrets+"\n")
+        f.write(str(self.ingresses)+"\n")
+        f.write(str(self.services)+"\n")
+        f.write(str(self.endpoints)+"\n")
+        f.write(str(self.secrets)+"\n")
         f.close()
 
     def load_k8s_config(self):
