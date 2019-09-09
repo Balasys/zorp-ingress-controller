@@ -21,7 +21,6 @@ class ZorpConfig():
     def load_k8s_config(self):
         self.ingresses = self.k8s.get_relevant_ingresses()
         self.services = self.k8s.get_relevant_services(self.ingresses)
-        print(zorpConfig.generate_config())
         self.endpoints = self.k8s.get_relevant_endpoints(self.services)
 
 def process_k8s_changes(namespace, ingress_class):
