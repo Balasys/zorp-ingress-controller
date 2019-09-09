@@ -17,7 +17,7 @@ class KubernetesBackend:
 
     _api = None
 
-    def __init__(self, namespace, ingress_class):
+    def __init__(self, namespace='default', ingress_class='zorp'):
 
         # The Borg Singleton
         self.__dict__ = self.__shared_state

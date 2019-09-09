@@ -13,8 +13,6 @@ if __name__ == '__main__':
     _logger = logging.getLogger('flask.app')
     _logger.setLevel(logging.getLevelName('INFO'))
     _logger.info("Initializing Zorp Ingress Controller")
-    namespace = ''
-    ingress_class = ''
     parser = argparse.ArgumentParser(description='Kubernetes Ingress Controller based on Zorp')
     parser.add_argument('--namespace', dest='namespace', default='default',
                     help='the namespace to watch for ingresses')
@@ -30,7 +28,7 @@ if __name__ == '__main__':
     }
 
     scheduler = BlockingScheduler(job_defaults=job_defaults)
-    scheduler.add_job(lambda: process_k8s_changes(namespace, ingress_class) , 'interval', seconds=5, jitter=5)
+    scheduler.add_job(lambda: process_k8s_changes(args.namespace, args.ingress_class) , 'interval', seconds=5, jitter=5)
 
     try:
         scheduler.start()
