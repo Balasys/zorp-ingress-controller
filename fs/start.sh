@@ -20,5 +20,6 @@ if [ $# -gt 0 ] && [ "$(echo $1 | cut -b1-2)" != "--" ]; then
     # Probably a `docker run -ti`, so exec and exit
     exec "$@"
 else
+    /etc/init.d/zorp start
     exec python3 -m zorp_ic.controller "$@"
 fi
