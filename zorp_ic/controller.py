@@ -1,4 +1,5 @@
 import argparse
+import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
 from .kubernetes_backend import KubernetesBackend
 
@@ -9,6 +10,9 @@ def process_k8s_changes(namespace, ingress_class):
 
 if __name__ == '__main__':
 
+    _logger = logging.getLogger('flask.app')
+    _logger.setLevel(logging.getLevelName('INFO'))
+    _logger.info("Initializing Zorp Ingress Controller")
     namespace = ''
     ingress_class = ''
     parser = argparse.ArgumentParser(description='Kubernetes Ingress Controller based on Zorp')
