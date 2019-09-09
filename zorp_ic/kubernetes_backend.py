@@ -144,11 +144,11 @@ class KubernetesBackend:
                         for port in subset.ports:
                             if endpoint.metadata.name in endpoints:
                                 if port.protocol in endpoints[endpoint.metadata.name]:
-                                    endpoints[endpoint.metadata.name][port.protocol].append("%s:%s" % (address.ip, address.port))
+                                    endpoints[endpoint.metadata.name][port.protocol].append("%s:%s" % (address.ip, port.port))
                                 else:
-                                    endpoints[endpoint.metadata.name][port.protocol] = ["%s:%s" % (address.ip, address.port), ]
+                                    endpoints[endpoint.metadata.name][port.protocol] = ["%s:%s" % (address.ip, port.port), ]
                             else:
-                                endpoints[endpoint.metadata.name] = { port.protocol : ["%s:%s" % (address.ip, address.port), ]}
+                                endpoints[endpoint.metadata.name] = { port.protocol : ["%s:%s" % (address.ip, port.port), ]}
         return set(endpoints)
 
     def _is_secret_initialized(self):
