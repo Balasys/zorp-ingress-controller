@@ -117,7 +117,7 @@ class KubernetesBackend:
             if service.metadata.name in relevant_services:
                 ports = {}
                 for port in service.spec.ports:
-                    ports[port.protocol][port.port] = port.target_port
+                    ports[port.protocol] = { port.port: port.target_port }
                 services[service.metadata.name] = ports
         return services
 
