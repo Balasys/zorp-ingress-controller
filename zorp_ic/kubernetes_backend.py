@@ -57,7 +57,7 @@ class KubernetesBackend:
         pass
 
 
-    def get_ingresses(self):
+    def _get_ingresses(self):
         try:
             api_response = self._ext_api.list_ingress_for_all_namespaces()
         except Exception as error:
@@ -73,7 +73,7 @@ class KubernetesBackend:
 
     def get_relevant_ingresses(self):
         ingresses = []
-        ingress_list = self.get_ingresses()
+        ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
             annotations = ingress.metadata.annotations
             if "kubernetes.io/ingress.class" in annotations:
@@ -85,6 +85,60 @@ class KubernetesBackend:
                 ingresses.append(ingress)
         return ingresses
 
+    def _get_services(self):
+        try:
+            api_response = self._api.list_service_for_all_namespaces()
+        except Exception as error:
+            self._logger.error('Failed to list K8S Services.')
+            self._logger.info(error)
+
+            raise KubernetesBackendError()
+
+        if api_response.items is None:
+            api_response.items = {}
+
+        return api_response
+
+    def get_relevant_services(self, ingresses):
+        relevant_services = []
+        for ingress in ingresses:
+            relevant_services.append(ingress.spec.backend.service_name)
+            for rule in ingress.spec.rules:
+                for path in rule.http.paths:
+                    relevant_services.append(path.backend.service_name)
+        services = []
+        for service in self._get_services():
+            if service.metadata.name in relevant_services:
+                services.append(service)
+        return set(services)
+
+    def _get_endpoints(self):
+        try:
+            api_response = self._api.list_endpoints_for_all_namespaces()
+        except Exception as error:
+            self._logger.error('Failed to list K8S Endpoints.')
+            self._logger.info(error)
+
+            raise KubernetesBackendError()
+
+        if api_response.items is None:
+            api_response.items = {}
+
+        return api_response
+
+    def get_relevant_endpoints(self, services):
+        relevant_services = []
+        for service in services:
+            relevant_services.append(service.metadata.name)
+        endpoints = {}
+        for endpoint in self._get_endpoints():
+            for subset in endpoint.subsets:
+                for address in subsets.addresses:
+                    ref = address.target_ref
+                    if ref in relevant_services:
+                        endpoints[ref] = address.ip
+        return set(endpoints)
+
     def _is_secret_initialized(self):
         try:
             self._get_secret()
@@ -92,20 +146,6 @@ class KubernetesBackend:
             return False
 
         return True
-
-    def _init_secret(self):
-        secret = client.V1Secret()
-        secret.api_version = 'v1'
-        secret.metadata = client.V1ObjectMeta()
-        secret.metadata.name = 'micado.networksecret'
-
-        try:
-            api_response = self._api.create_namespaced_secret('default', secret)
-        except Exception as error:
-            self._logger.error('Failed to initialize K8S Secret.')
-            self._logger.info(error)
-
-            raise KubernetesBackendError()
 
     def _get_secret(self):
         try:
@@ -121,22 +161,6 @@ class KubernetesBackend:
 
         return secret
 
-    def _put_secret(self, secret):
-        try:
-            self._api.replace_namespaced_secret('micado.networksecret', 'default', secret)
-        except Exception as error:
-            self._logger.error('Failed to update K8S Secret.')
-            self._logger.info(error)
-
-            raise KubernetesBackendError()
-
-    def create_secret(self, name, value):
-        secret = self._get_secret()
-
-        secret.data[name] = base64.b64encode(value.encode('UTF-8')).decode('ASCII')
-
-        self._put_secret(secret)
-
     def read_secret(self, name):
         secret = self._get_secret()
 
@@ -149,23 +173,3 @@ class KubernetesBackend:
         secret = self._get_secret()
 
         return secret.data.keys()
-
-    def update_secret(self, name, value):
-        secret = self._get_secret()
-
-        if name not in secret.data:
-            raise KubernetesBackendKeyNotFoundError
-
-        secret.data[name] = base64.b64encode(value.encode('UTF-8')).decode('ASCII')
-
-        self._put_secret(secret)
-
-    def delete_secret(self, name):
-        secret = self._get_secret()
-
-        try:
-            del secret.data[name]
-        except KeyError:
-            pass
-
-        self._put_secret(secret)
