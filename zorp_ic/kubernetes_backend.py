@@ -123,9 +123,12 @@ class KubernetesBackend:
         return api_response
 
     def get_relevant_services(self, ingresses):
+        relevant_services = []
+        for ingress in ingresses:
+            relevant_services.append(ingress["services"])
         services = {}
         for service in self._get_services().items:
-            if service.metadata.name in ingresses["services"]:
+            if service.metadata.name in relevant_services:
                 ports = {}
                 for port in service.spec.ports:
                     ports[port.protocol] = { port.port: port.target_port }
