@@ -59,7 +59,7 @@ class KubernetesBackend:
 
     def get_ingresses(self):
         try:
-            api_response = api_instance.list_ingress_for_all_namespaces()
+            api_response = self._ext_api.list_ingress_for_all_namespaces()
         except Exception as error:
             self._logger.error('Failed to list K8S Ingresses.')
             self._logger.info(error)
