@@ -34,15 +34,6 @@ class KubernetesBackend:
             self._api = client.CoreV1Api()
             self._ext_api = client.ExtensionsV1beta1Api()
 
-            if self._is_secret_initialized():
-                self._logger.info('K8S Secret already initalized.')
-            else:
-                self._logger.info('Initializing K8S Secret.')
-
-                self._init_secret()
-
-                self._logger.info('K8S Secret initalized.')
-
     def _getName(self, object):
         name = object.metadata.name
         namespace = object.metadata.namespace
