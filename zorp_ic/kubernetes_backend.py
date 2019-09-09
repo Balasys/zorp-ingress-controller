@@ -26,7 +26,7 @@ class KubernetesBackend:
 
         if not self._api or not self._ext_api:
             self._logger = logging.getLogger('flask.app')
-
+            self._logger.setLevel(logging.getLevelName('INFO'))
             self._logger.info('Initializing Kubernetes Client.')
 
             config.load_incluster_config()
