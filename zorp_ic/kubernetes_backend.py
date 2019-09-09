@@ -43,6 +43,11 @@ class KubernetesBackend:
 
                 self._logger.info('K8S Secret initalized.')
 
+    def _getName(self, object):
+        name = object.metadata.name
+        namespace = object.metadata.namespace
+        return "%s/%s" % (name, namespace)
+
     def get_ingress_annotations(self):
         ingress = self._ext_api.read_namespaced_ingress("name", self.namespace)
         annotations = ingress.metadata.annotations
@@ -80,7 +85,7 @@ class KubernetesBackend:
                 if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
                     ingresses.append(ingress)
                 else:
-                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (ingress.metadata.name, annotations["kubernetes.io/ingress.class"]))
+                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (self._getName(ingress), annotations["kubernetes.io/ingress.class"]))
             else:
                 ingresses.append(ingress)
         return ingresses
@@ -141,9 +146,9 @@ class KubernetesBackend:
                                 if port.protocol in endpoints[endpoint.metadata.name]:
                                     endpoints[endpoint.metadata.name][port.protocol].append("%s:%s" % (address.ip, address.port))
                                 else:
-                                    endpoints[endpoint.metadata.name][port.protocol] = ["%s:%s" % (address.ip, address.port, ]
+                                    endpoints[endpoint.metadata.name][port.protocol] = ["%s:%s" % (address.ip, address.port), ]
                             else:
-                                endpoints[endpoint.metadata.name] = { port.protocol : ["%s:%s" % (address.ip, address.port, ]}
+                                endpoints[endpoint.metadata.name] = { port.protocol : ["%s:%s" % (address.ip, address.port), ]}
         return set(endpoints)
 
     def _is_secret_initialized(self):
