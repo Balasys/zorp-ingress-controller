@@ -75,12 +75,12 @@ class KubernetesBackend:
         ingresses = []
         ingress_list = self.get_ingresses()
         for ingress in ingress_list.items:
-            annotation = ingress.metadata.annotation
-            if "kubernetes.io/ingress.class" in annotation:
-                if annotation["kubernetes.io/ingress.class"] == self.ingress_class:
+            annotations = ingress.metadata.annotations
+            if "kubernetes.io/ingress.class" in annotations:
+                if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
                     ingresses.append(ingress)
                 else:
-                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (ingress.name, annotation["kubernetes.io/ingress.class"]))
+                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (ingress.name, annotations["kubernetes.io/ingress.class"]))
             else:
                 ingresses.append(ingress)
         return ingresses
