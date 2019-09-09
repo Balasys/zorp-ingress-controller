@@ -108,7 +108,7 @@ class KubernetesBackend:
                 for path in rule.http.paths:
                     relevant_services.append(path.backend.service_name)
         services = []
-        for service in self._get_services():
+        for service in self._get_services().items:
             if service.metadata.name in relevant_services:
                 services.append(service)
         return set(services)
@@ -132,7 +132,7 @@ class KubernetesBackend:
         for service in services:
             relevant_services.append(service.metadata.name)
         endpoints = {}
-        for endpoint in self._get_endpoints():
+        for endpoint in self._get_endpoints().items:
             for subset in endpoint.subsets:
                 for address in subsets.addresses:
                     ref = address.target_ref
