@@ -135,7 +135,7 @@ class KubernetesBackend:
         for endpoint in self._get_endpoints().items:
             if endpoint.subsets is not None:
                 for subset in endpoint.subsets:
-                    for address in subsets.addresses:
+                    for address in subset.addresses:
                         ref = address.target_ref
                         if ref in relevant_services:
                             if ref in endpoints:
