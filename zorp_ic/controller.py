@@ -4,7 +4,7 @@ from .kubernetes_backend import KubernetesBackend
 
 def process_k8s_changes(namespace, ingress_class):
     k8s = KubernetesBackend(namespace, ingress_class)
-    k8s.get_ingresses()
+    print(k8s.get_relevant_ingresses())
     return
 
 if __name__ == '__main__':

@@ -69,9 +69,21 @@ class KubernetesBackend:
         if api_response.items is None:
             api_response.items = {}
 
-        pprint(api_response)
-
         return api_response
+
+    def get_relevant_ingresses(self):
+        ingresses = []
+        ingress_list = self.get_ingresses()
+        for ingress in ingress_list:
+            annotation = ingress.metadata.annotation
+            if "kubernetes.io/ingress.class" in annotation:
+                if annotation["kubernetes.io/ingress.class"] == self.ingress_class:
+                    ingresses.append(ingress)
+                else:
+                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (ingress.name, annotation["kubernetes.io/ingress.class"]))
+            else:
+                ingresses.append(ingress)
+        return ingresses
 
     def _is_secret_initialized(self):
         try:
