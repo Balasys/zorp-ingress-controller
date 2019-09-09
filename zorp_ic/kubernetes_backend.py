@@ -112,10 +112,13 @@ class KubernetesBackend:
             for rule in ingress.spec.rules:
                 for path in rule.http.paths:
                     relevant_services.append(path.backend.service_name)
-        services = []
+        services = {}
         for service in self._get_services().items:
             if service.metadata.name in relevant_services:
-                services.append(service)
+                ports = {}
+                for port in service.spec.ports:
+                    ports[port.protocol][port.port] = port.target_port
+                services[service.metadata.name] = ports
         return services
 
     def _get_endpoints(self):
@@ -133,12 +136,9 @@ class KubernetesBackend:
         return api_response
 
     def get_relevant_endpoints(self, services):
-        relevant_services = []
-        for service in services:
-            relevant_services.append(service.metadata.name)
         endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.metadata.name in relevant_services:
+            if endpoint.metadata.name in services.keys():
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
