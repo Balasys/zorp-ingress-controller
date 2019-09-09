@@ -124,8 +124,8 @@ class KubernetesBackend:
 
     def get_relevant_services(self, ingresses):
         relevant_services = []
-        for ingress in ingresses:
-            relevant_services.append(ingress["services"])
+        for ingress in ingresses.values():
+            relevant_services.extend(ingress["services"])
         services = {}
         for service in self._get_services().items:
             if service.metadata.name in relevant_services:
