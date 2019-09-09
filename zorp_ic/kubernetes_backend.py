@@ -102,7 +102,8 @@ class KubernetesBackend:
     def get_relevant_services(self, ingresses):
         relevant_services = []
         for ingress in ingresses:
-            relevant_services.append(ingress.spec.backend.service_name)
+            if ingress.spec.backend is not None:
+                relevant_services.append(ingress.spec.backend.service_name)
             for rule in ingress.spec.rules:
                 for path in rule.http.paths:
                     relevant_services.append(path.backend.service_name)
