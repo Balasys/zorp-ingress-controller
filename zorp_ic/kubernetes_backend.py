@@ -138,7 +138,7 @@ class KubernetesBackend:
             relevant_services.append(service.metadata.name)
         endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.metadta.name in relevant_services:
+            if endpoint.metadata.name in relevant_services:
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
