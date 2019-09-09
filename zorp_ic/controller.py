@@ -13,10 +13,12 @@ class ZorpConfig():
         self.k8s = KubernetesBackend(namespace, ingress_class)
 
     def generate_config(self):
-        print(self.ingresses)
-        print(self.services)
-        print(self.endpoints)
-        print(self.secrets)
+        f = open("/tmp/k8s-config", "w")
+        f.write(self.ingresses+"\n")
+        f.write(self.services+"\n")
+        f.write(self.endpoints+"\n")
+        f.write(self.secrets+"\n")
+        f.close()
 
     def load_k8s_config(self):
         self.ingresses = self.k8s.get_relevant_ingresses()
@@ -29,7 +31,7 @@ class ZorpConfig():
 def process_k8s_changes(namespace, ingress_class):
     zorpConfig = ZorpConfig(namespace, ingress_class)
     zorpConfig.load_k8s_config()
-    print(zorpConfig.generate_config())
+    zorpConfig.generate_config()
     return
 
 if __name__ == '__main__':
