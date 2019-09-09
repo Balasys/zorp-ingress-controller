@@ -76,6 +76,24 @@ class KubernetesBackend:
 
         return api_response
 
+    def _get_ingress_spec(self, ingress):
+        services = []
+        rules = {}
+        for rule in rules:
+            paths = {}
+            for path in rule.http.paths:
+                paths[path.path] = {"service": path.backend.service_name, "port": path.backend.service_port}
+                services.append(path.backend.service_name)
+            rules[rule.host] = paths
+        spec = {"rules": rules}
+        if ingress.spec.backend is not None:
+            backend_service = ingress.spec.backend.service_name
+            backend_port = ingress.spec.backend.service_port
+            spec["default"] = {"service": backend_service, "port": backend_port}
+            services.append(backend_service)
+        spec["services"] = services
+        return spec
+
     def get_relevant_ingresses(self):
         ingresses = {}
         ingress_list = self._get_ingresses()
@@ -83,11 +101,11 @@ class KubernetesBackend:
             annotations = ingress.metadata.annotations
             if "kubernetes.io/ingress.class" in annotations:
                 if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
-                    ingresses[ingress.metadata.name] = ingress.spec
+                    ingresses[ingress.metadata.name] = self._get_ingress_spec(ingress)
                 else:
                     self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (self._getName(ingress), annotations["kubernetes.io/ingress.class"]))
             else:
-                ingresses[ingress.metadata.name] = ingress.spec
+                ingresses[ingress.metadata.name] = self._get_ingress_spec(ingress)
         return ingresses
 
     def _get_services(self):
@@ -105,16 +123,9 @@ class KubernetesBackend:
         return api_response
 
     def get_relevant_services(self, ingresses):
-        relevant_services = []
-        for ingress in ingresses.values():
-            if ingress.backend is not None:
-                relevant_services.append(ingress.backend.service_name)
-            for rule in ingress.rules:
-                for path in rule.http.paths:
-                    relevant_services.append(path.backend.service_name)
         services = {}
         for service in self._get_services().items:
-            if service.metadata.name in relevant_services:
+            if service.metadata.name in ingresses["services"]:
                 ports = {}
                 for port in service.spec.ports:
                     ports[port.protocol] = { port.port: port.target_port }
