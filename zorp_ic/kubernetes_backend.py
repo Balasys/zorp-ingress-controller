@@ -64,10 +64,11 @@ class KubernetesBackend:
             rules[rule.host] = paths
         spec = {"rules": rules}
         tlsspec = {}
-        for tls in ingress.spec.tls:
-            for host in tls.hosts:
-                if host not in tlsspec:
-                    tlsspec[host] = tls.secret_name
+        if ingress.spec.tls is not None:
+            for tls in ingress.spec.tls:
+                for host in tls.hosts:
+                    if host not in tlsspec:
+                        tlsspec[host] = tls.secret_name
         spec["tls"] = tlsspec
         if ingress.spec.backend is not None:
             backend_service = ingress.spec.backend.service_name
@@ -97,7 +98,7 @@ class KubernetesBackend:
                 ingresses["rules"][host] = ingress["rules"][host]
 
     def get_relevant_ingresses(self):
-        ingresses = {'rules' : {}, 'services': [], 'tls': []}
+        ingresses = {'rules' : {}, 'services': [], 'tls': {}}
         ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
             annotations = ingress.metadata.annotations
@@ -167,7 +168,9 @@ class KubernetesBackend:
                                 endpoints[port.protocol] = { name : ["%s:%d" % (address.ip, port.port), ]}
         return endpoints
 
-    def _get_secret(self, namespace=self.namespace, name='tls-secret'):
+    def _get_secret(self, namespace=None, name='tls-secret'):
+        if namespace is None:
+            namespace = self.namespace
         try:
             secret = self._api.read_namespaced_secret(name, namespace)
         except client.rest.ApiException as api_exception:
@@ -198,7 +201,7 @@ class KubernetesBackend:
 
         return base64.b64decode(secret.data[name])
 
-    def read_named_secret(self, namespace, name):
+    def read_named_tls_secret(self, namespace, name):
         secret = self._get_secret(namespace, name)
 
         if secret is None:
@@ -206,8 +209,16 @@ class KubernetesBackend:
 
         if secret.data is None or ("tls.key" not in secret.data or "tls.crt" not in secret.data):
             raise KubernetesBackendKeyNotFoundError
+        cert = base64.b64decode(secret.data["tls.crt"])
+        key = base64.b64decode(secret.data["tls.key"])
+        return {"tls.crt": cert, "tls.key": key}
 
-        return secret.data
+    def get_relevant_secrets(self, ingress):
+        secrets = {}
+        for secretname in ingress["tls"].values():
+            secret = self.read_named_tls_secret(self.namespace, secretname)
+            secrets[secretname] = secret
+        return secrets
 
     def list_secrets(self):
         secret = self._get_secret()
