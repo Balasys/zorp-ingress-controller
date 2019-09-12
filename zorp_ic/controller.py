@@ -1,6 +1,7 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 import argparse
 import logging
+import os.path
 import subprocess
 from .kubernetes_backend import KubernetesBackend
 
@@ -14,11 +15,22 @@ class ZorpConfig():
         self.secrets = secrets
         self.behaviour = behaviour
 
-        self.logger = logging.getLogger('flask.app')
-        self.logger.setLevel(logging.getLevelName('INFO'))
+        self._logger = logging.getLogger('flask.app')
+        self._logger.setLevel(logging.getLevelName('INFO'))
         self.k8s = KubernetesBackend(namespace, ingress_class)
 
+        self.has_default_cert = os.path.isfile('/etc/zorp/default-tls.key')
+
+    def generate_self_signed_cert(self):
+        self._logger.info("Generating self-signed certificate for default TLS service")
+        res = subprocess.Popen(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days 3650', '-sha256', '-nodes', '-x509', '-subj', '/CN=Ingress Default Certificate', '-keyout' '/etc/zorp/default-tls.key', '-out', '/etc/zorp/default-tls.cert'])
+        output, error_ = res.communicate()
+        if (error_):
+            logger.error(error_)
+
     def generate_config(self):
+        if len(self.secrets) == 0 and not self.has_default_cert:
+            self.generate_self_signed_cert()
         f = open("/tmp/k8s-config", "w")
         f.write(str(self.ingresses)+"\n")
         f.write(str(self.services)+"\n")
