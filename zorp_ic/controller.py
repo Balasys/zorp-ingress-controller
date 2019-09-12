@@ -1,16 +1,21 @@
+from apscheduler.schedulers.blocking import BlockingScheduler
 import argparse
 import logging
-from apscheduler.schedulers.blocking import BlockingScheduler
+import subprocess
 from .kubernetes_backend import KubernetesBackend
 
 
 class ZorpConfig():
+
     def __init__(self, namespace='default', ingress_class='zorp', behaviour='basic', ingresses=None, services=None, endpoints=None, secrets=None):
         self.ingresses = ingresses
         self.services = services
         self.endpoints = endpoints
         self.secrets = secrets
         self.behaviour = behaviour
+
+        self.logger = logging.getLogger('flask.app')
+        self.logger.setLevel(logging.getLevelName('INFO'))
         self.k8s = KubernetesBackend(namespace, ingress_class)
 
     def generate_config(self):
@@ -22,7 +27,10 @@ class ZorpConfig():
         f.close()
 
     def reload_zorp(self):
-        pass
+        subprocess.Popen(['/usr/sbin/zorpctl', 'reload'], stdout=subprocess.PIPE)
+        output, error_ = res.communicate()
+        if (error_):
+            logger.error(error_)
 
     def load_k8s_config(self):
         oldconfig = {'ingresses': self.ingresses, 'services': self.services, 'endpoints': self.endpoints, 'secrets': self.secrets}
@@ -43,8 +51,6 @@ def process_k8s_changes(zorpConfig):
 
 if __name__ == '__main__':
 
-    _logger = logging.getLogger('flask.app')
-    _logger.setLevel(logging.getLevelName('INFO'))
     _logger.info("Initializing Zorp Ingress Controller")
     parser = argparse.ArgumentParser(description='Kubernetes Ingress Controller based on Zorp')
     parser.add_argument('--namespace', dest='namespace', default='default',
