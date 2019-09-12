@@ -66,7 +66,7 @@ class ZorpConfig(object):
         self._logger.setLevel(logging.getLevelName('INFO'))
         self.k8s = KubernetesBackend(namespace, ingress_class)
 
-        self.has_default_cert = os.path.isfile('/etc/zorp/default-tls.key')
+        self.has_default_cert = os.path.isfile('/etc/zorp/tls.key')
 
     def generate_self_signed_cert(self):
         self._logger.error("Generating self-signed certificate for default TLS service")
