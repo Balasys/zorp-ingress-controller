@@ -40,7 +40,7 @@ EncryptionPolicy(
                 {% endfor %}
                 default : StaticCertificate(
                               certificate=Certificate.fromFile(
-                                  certificate_file_path="/etc/zorp/tls.pem",
+                                  certificate_file_path="/etc/zorp/tls.crt",
                                   private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
                           )
         )

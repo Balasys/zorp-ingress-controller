@@ -70,20 +70,29 @@ class ZorpConfig(object):
 
     def generate_self_signed_cert(self):
         self._logger.error("Generating self-signed certificate for default TLS service")
-        res = subprocess.Popen(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '3650', '-sha256', '-nodes', '-x509', '-subj', '/CN=Ingress Default Certificate', '-keyout', '/etc/zorp/tls.key', '-out', '/etc/zorp/tls.pem'])
+        res = subprocess.Popen(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '3650', '-sha256', '-nodes', '-x509', '-subj', '/CN=Ingress Default Certificate', '-keyout', '/etc/zorp/tls.key', '-out', '/etc/zorp/tls.crt'])
         output, error_ = res.communicate()
         if (error_):
             logger.error(error_)
         else:
+            shutil.chown("/etc/zorp/tls.key", user="root", group="zorp")
+            shutil.chown("/etc/zorp/tls.crt", user="root", group="zorp")
+            os.chmod("/etc/zorp/tls.key", 0640)
+            os.chmod("/etc/zorp/tls.crt", 0640)
             self.has_default_cert = True
 
-    def write_secret(self, name, secret):
-        cert = open("/etc/zorp/tls-%s.crt" % name, "wb")
-        cert.write(secret["tls.crt"])
+    def _write_and_set_perms(filename, content):
+        cert = open(filename, "wb")
+        cert.write(content)
         cert.close()
-        key = open("/etc/zorp/tls-%s.key" % name, "wb")
-        key.write(secret["tls.key"])
-        key.close()
+        shutil.chown(filename, user="root", group="zorp")
+        os.chmod(filename, 0640)
+
+    def write_secret(self, name, secret):
+        certfilename = "/etc/zorp/tls-%s.crt" % name
+        self._write_and_set_perms(certfilename, secret["tls.crt"])
+        keyfilename = "/etc/zorp/tls-%s.key" % name
+        self._write_and_set_perms(certfilename, secret["tls.key"])
 
     def generate_config(self):
         if self.behaviour == 'basic':
