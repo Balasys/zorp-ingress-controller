@@ -1,11 +1,14 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 import argparse
 from copy import deepcopy
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 import logging
 import os
 import os.path
+import shutil
 import subprocess
+import sys
+
 from .kubernetes_backend import KubernetesBackend
 
 
@@ -13,7 +16,7 @@ class ZorpConfigGenerator(object):
     def __init__(self, templatedir):
         super(ZorpConfigGenerator, self).__init__()
         self.env = Environment(
-            loader=FileSystemLoader(templatedir),
+            loader=PackageLoader('zorp_ic', 'templates'),
             trim_blocks=True,
             lstrip_blocks=True,
             extensions=['jinja2.ext.do']
@@ -78,6 +81,7 @@ class ZorpConfig(object):
         if len(self.secrets) == 0 and self.has_default_cert is False and self.behaviour == 'basic':
             self.generate_self_signed_cert()
         policyPy = ZorpConfigGenerator("templates/")
+        policyPy.renderTemplate("basic-policy.py.j2", self.config)
         f = open("/tmp/k8s-config", "w")
         f.write(str(self.config)+"\n")
         f.close()
