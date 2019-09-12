@@ -5,11 +5,12 @@ from .kubernetes_backend import KubernetesBackend
 
 
 class ZorpConfig():
-    def __init__(self, namespace='default', ingress_class='zorp', ingresses=None, services=None, endpoints=None, secrets=None):
+    def __init__(self, namespace='default', ingress_class='zorp', behaviour='basic', ingresses=None, services=None, endpoints=None, secrets=None):
         self.ingresses = ingresses
         self.services = services
         self.endpoints = endpoints
         self.secrets = secrets
+        self.behaviour = behaviour
         self.k8s = KubernetesBackend(namespace, ingress_class)
 
     def generate_config(self):
@@ -20,18 +21,24 @@ class ZorpConfig():
         f.write(str(self.secrets)+"\n")
         f.close()
 
+    def reload_zorp(self):
+        pass
+
     def load_k8s_config(self):
+        oldconfig = {'ingresses': self.ingresses, 'services': self.services, 'endpoints': self.endpoints, 'secrets': self.secrets}
         self.ingresses = self.k8s.get_relevant_ingresses()
         self.services = self.k8s.get_relevant_services(self.ingresses)
         self.endpoints = self.k8s.get_relevant_endpoints(self.services)
         #self.secrets= {}
         #for secret_name in self.k8s.list_secrets():
         #    self.secrets[secret_name] = self.k8s.get_secret(secretname)
+        if (oldconfig['ingresses'] != self.ingresses or oldconfig['services'] != self.services or
+                oldconfig['endpoints'] != self.endpoints or oldconfig['secrets'] != self.secrets):
+           self.generate_config()
+           self.reload_zorp()
 
-def process_k8s_changes(namespace, ingress_class):
-    zorpConfig = ZorpConfig(namespace, ingress_class)
+def process_k8s_changes(zorpConfig):
     zorpConfig.load_k8s_config()
-    zorpConfig.generate_config()
     return
 
 if __name__ == '__main__':
@@ -44,6 +51,8 @@ if __name__ == '__main__':
                     help='the namespace to watch for ingresses')
     parser.add_argument('--ingress.class', dest='ingress_class', default='zorp',
                     help='ingress class types to watch in a multi-ingress environment')
+    parser.add_argument('--behaviour', dest='behaviour', default='basic', choices=['basic', 'tosca'],
+                    help='chooses if the controller should generate Zorp configuration based on k8s objects or TOSCA syntax annotation')
 
     args = parser.parse_args()
 
@@ -53,8 +62,10 @@ if __name__ == '__main__':
         'misfire_grace_time': 300
     }
 
+    zorpConfig = ZorpConfig(args.namespace, args.ingress_class, args.behaviour)
+
     scheduler = BlockingScheduler(job_defaults=job_defaults)
-    scheduler.add_job(lambda: process_k8s_changes(args.namespace, args.ingress_class) , 'interval', seconds=5, jitter=5)
+    scheduler.add_job(lambda: process_k8s_changes(zorpConfig), 'interval', seconds=5, jitter=5)
 
     try:
         scheduler.start()
