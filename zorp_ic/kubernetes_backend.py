@@ -179,5 +179,6 @@ class KubernetesBackend:
 
     def list_secrets(self):
         secret = self._get_secret()
-
+        if secret is None:
+            return None
         return base64.b64decode(secret.data.keys())
