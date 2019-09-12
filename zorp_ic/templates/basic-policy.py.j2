@@ -36,12 +36,18 @@ EncryptionPolicy(
         client_certificate_generator=SNIBasedCertificate(
             hostname_certificate_map={
                 {% for host, secret in conf.ingress.tls.items() %}
-                RegexpMatcher(match_list=("{{ host }}", )): StaticCertificate(certificate=Certificate.fromFile(certificate_file_path="/etc/zorp/tls-{{ secret }}.crt", private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ secret }}.key", passphrase=""))),
+                RegexpMatcher(match_list=("{{ host }}", )): StaticCertificate(
+                                                                certificate=Certificate.fromFile(
+                                                                    certificate_file_path="/etc/zorp/tls-{{ secret }}.crt", 
+                                                                    private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ secret }}.key", passphrase="")
+                                                                )
+                                                            ),
                 {% endfor %}
                 default : StaticCertificate(
                               certificate=Certificate.fromFile(
                                   certificate_file_path="/etc/zorp/tls.crt",
                                   private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
+                              )
                           )
         )
     )
