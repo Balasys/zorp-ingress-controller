@@ -77,11 +77,24 @@ class ZorpConfig(object):
         else:
             self.has_default_cert = True
 
+    def write_secret(self, name, secret):
+        cert = open("/etc/zorp/tls-%s.crt" % name, "w")
+        cert.write(secret["tls.crt"])
+        cert.close()
+        key = open("/etc/zorp/tls-%s.key" % name, "w")
+        key.write(secret["tls.key"])
+        key.close()
+
     def generate_config(self):
-        if len(self.secrets) == 0 and self.has_default_cert is False and self.behaviour == 'basic':
-            self.generate_self_signed_cert()
-        policyPy = ZorpConfigGenerator("templates/")
-        policyPy.renderTemplate("basic-policy.py.j2", self.config)
+        if self.behaviour == 'basic':
+            if self.has_default_cert is False:
+                self.generate_self_signed_cert()
+            for secret in self.secrets:
+                self.write_secret(name, secret)
+            policyPy = ZorpConfigGenerator("templates/")
+            policyPy.renderTemplate("basic-policy.py.j2", self.config)
+        else:
+            pass
         f = open("/tmp/k8s-config", "w")
         f.write(str(self.config)+"\n")
         f.close()
@@ -98,9 +111,7 @@ class ZorpConfig(object):
         self.config["ingress"] = self.k8s.get_relevant_ingresses()
         self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
         self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
-        self.secrets= {}
-        for secret_name in self.k8s.list_secrets():
-            self.secrets[secret_name] = self.k8s.get_secret(secretname)
+        self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
         if oldconfig != self.config:
            self.generate_config()
            self.reload_zorp()

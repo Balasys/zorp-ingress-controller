@@ -63,6 +63,12 @@ class KubernetesBackend:
                 services.append(path.backend.service_name)
             rules[rule.host] = paths
         spec = {"rules": rules}
+        tlsspec = {}
+        for tls in ingress.spec.tls:
+            for host in tls.hosts:
+                if host not in tlsspec:
+                    tlsspec[host] = tls.secret_name
+        spec["tls"] = tlsspec
         if ingress.spec.backend is not None:
             backend_service = ingress.spec.backend.service_name
             backend_port = ingress.spec.backend.service_port
@@ -78,6 +84,9 @@ class KubernetesBackend:
         if "default" not in ingresses and "default" in ingress:
             ingresses["default"] = ingress["default"]
         ingresses["services"].extend(ingress["services"])
+        for host in ingress["tls"]:
+            if host not in ingresses["tls"]:
+                ingresses["tls"][host] = ingress["tls"][host]
         rules = ingress["rules"]
         for host in rules.keys():
             if host in ingresses["rules"]:
@@ -88,7 +97,7 @@ class KubernetesBackend:
                 ingresses["rules"][host] = ingress["rules"][host]
 
     def get_relevant_ingresses(self):
-        ingresses = {'rules' : {}, 'services': []}
+        ingresses = {'rules' : {}, 'services': [], 'tls': []}
         ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
             annotations = ingress.metadata.annotations
@@ -158,9 +167,9 @@ class KubernetesBackend:
                                 endpoints[port.protocol] = { name : ["%s:%d" % (address.ip, port.port), ]}
         return endpoints
 
-    def _get_secret(self):
+    def _get_secret(self, namespace=self.namespace, name='tls-secret'):
         try:
-            secret = self._api.read_namespaced_secret(self.namespace, 'tls-secret')
+            secret = self._api.read_namespaced_secret(name, namespace)
         except client.rest.ApiException as api_exception:
             if api_exception.status == 404:
                 self._logger.error("Failed to fetch secret; namespace='%s', secret='%s'" % (self.namespace, "tls-secret"))
@@ -188,6 +197,17 @@ class KubernetesBackend:
             raise KubernetesBackendKeyNotFoundError
 
         return base64.b64decode(secret.data[name])
+
+    def read_named_secret(self, namespace, name):
+        secret = self._get_secret(namespace, name)
+
+        if secret is None:
+            raise KubernetesBackendKeyNotFoundError
+
+        if secret.data is None or ("tls.key" not in secret.data or "tls.crt" not in secret.data):
+            raise KubernetesBackendKeyNotFoundError
+
+        return secret.data
 
     def list_secrets(self):
         secret = self._get_secret()
