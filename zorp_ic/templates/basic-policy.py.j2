@@ -1,0 +1,86 @@
+from Zorp.Core import *
+from Zorp.Proxy import *
+from Zorp.Http import *
+import os.path
+
+config.options.kzorp_enabled = False
+
+class HealthzHttpProxy(HttpProxy):
+    def config(self):
+        HttpProxy.config(self)
+        self.error_silent = TRUE
+        self.request["GET"] = (HTTP_REQ_POLICY,self.reqRedirect)
+
+    def reqRedirect(self, method, url, version):
+        self.error_status = 200
+        self.error_msg = 'OK'
+        self.error_info = 'HTTP/1.0 200 OK'
+        self.custom_reponse_body = ''
+        return HTTP_REQ_CUSTOM_RESPONSE
+
+EncryptionPolicy(
+    name="https_clientonly_encryption_policy",
+    encryption=ClientOnlyEncryption(
+        client_verify=ClientNoneVerifier(),
+        client_ssl_options=ClientSSLOptions(
+            method=SSL_METHOD_ALL,
+            cipher="ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:!aNULL:!MD5:!DSS",
+            cipher_server_preference=FALSE,
+            timeout=300,
+            disable_sslv2=TRUE,
+            disable_sslv3=TRUE,
+            disable_tlsv1=TRUE,
+            disable_tlsv1_1=TRUE,
+            disable_tlsv1_2=FALSE,
+            disable_compression=FALSE
+        ),
+        client_certificate_generator=SNIBasedCertificate(
+            hostname_certificate_map={
+                {% for host, secret in conf.ingress.tls.items() %}
+                RegexpMatcher(match_list=("{{ host }}", )): StaticCertificate(
+                                                                certificate=Certificate.fromFile(
+                                                                    certificate_file_path="/etc/zorp/tls-{{ secret }}.crt", 
+                                                                    private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ secret }}.key", passphrase="")
+                                                                )
+                                                            ),
+                {% endfor %}
+            },
+            default=StaticCertificate(
+                        certificate=Certificate.fromFile(
+                            certificate_file_path="/etc/zorp/tls.crt",
+                            private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
+                        )
+            )
+        )
+    )
+)
+
+class IngressHttpProxy(HttpProxy):
+    def config(self):
+        HttpProxy.config(self)
+        self.error_silent = TRUE
+        self.url_mapping = {{ conf.ingress.rules }}
+
+    def setServerAddress(self, host, port):
+        if self.url_mapping.has_key(host):
+            match = os.path.commonprefix(self.request_url_file, self.url_mapping[host].keys())
+            if self.url_mapping[host].has_key(match):
+                rule = self.url_mapping[host][match]
+                service = rule["service"]
+                port = rule["port"]
+                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
+                self.setRequestHeader("Host", service+":"+str(port))
+                return HttpProxy.setServerAddress(self, service, port)
+        return HttpProxy.setServerAddress(self, {{ conf.ingress.default.service }}, {{ conf.ingress.default.port }})
+
+ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={{ conf.endpoints.TCP }}))
+
+def default():
+    Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
+    Service(name='http', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=IngressHttpProxy, resolver_policy="k8sResolver", max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
+    Service(name='https', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=IngressHttpProxy, resolver_policy="k8sResolver", encryption_policy="https_clientonly_encryption_policy", max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
+
+    Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=1042, iface="eth0", family=2), rule_port="1042", service="healthz")
+    Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=80, iface="eth0", family=2), rule_port="80", service="http")
+    Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=443, iface="eth0", family=2), rule_port="443", service="https")
+

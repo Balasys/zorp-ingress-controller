@@ -1,0 +1,256 @@
+# -*- coding: utf-8 -*-
+
+{%- macro zorp_bool(bool) -%}
+{% if bool %}TRUE{% else %}FALSE{% endif %}
+{%- endmacro %}
+
+{%- macro zorp_hdr_policy(p) -%}
+HTTP_HDR_{{ p|upper }}
+{%- endmacro %}
+
+{%- macro zorp_ssl_cipher(cipher) -%}
+{% if cipher in ['all', 'high', 'medium', 'low'] %}SSL_CIPHERS_{{ cipher|upper }}{% else %}(SSL_CIPHERS_CUSTOM, "{{ cipher }}"){% endif %}
+{%- endmacro %}
+
+{%- macro zorp_sockaddr(servers) -%}
+    ({% for dst in servers %}SockAddrInetHostname("{{ dst.host }}", {{ dst.port }}), {% endfor %})
+{%- endmacro %}
+
+{%- macro zorp_config_regex_matcher(name, whitelist, blacklist) %}
+        self.{{ name }} = RegexMatcher(
+            match_list=(
+                {% for w_pattern in whitelist -%}
+                r"{{ w_pattern }}",
+                {% endfor -%}
+                ),
+            {% if blacklist == None %}
+            ignore_list = None
+            {% else %}
+            ignore_list=(
+                {% for b_pattern in blacklist -%}
+                r"{{ b_pattern }}",
+                {% endfor -%}
+                )
+            {% endif %}
+            )
+
+{%- endmacro %}
+
+{% macro zorp_http_config(policy) %}
+{%- set string_types = ("parent_proxy", "language") %}
+{%- set integer_types = ("max_keepalive_requests", "max_hostname_length", "parent_proxy_port", "max_line_length", "max_chunk_length", "max_auth_time", "max_url_length", "timeout_request", "rerequest_attempts", "error_status", "max_header_lines", "max_body_length", "buffer_size", "timeout_response", "auth_cache_time", "timeout", "default_port") %}
+{%- set boolean_types = ("permit_proxy_requests", "reset_on_close", "permit_unicode_url", "permit_server_requests", "permit_ftp_over_http", "permit_http09_responses", "rewrite_host_header", "strict_header_checking", "keep_persistent", "use_canonicalized_urls", "require_host_header", "transparent_mode", "permit_null_response", "error_silent", "use_default_port_in_transparent_mode", "permit_invalid_hex_escape") %}
+        {%- for param in string_types %}
+        {%- if param in policy %}
+        self.{{ param }} = "{{ policy[param] }}"
+        {%- endif %}
+        {%- endfor %}
+        {%- for param in integer_types %}
+        {%- if param in policy %}
+        self.{{ param }} = {{ policy[param] }}
+        {%- endif %}
+        {%- endfor %}
+        {%- for param in boolean_types -%}
+        {%- if param in policy %}
+        self.{{ param }} = {{ zorp_bool(policy[param]) }}
+        {%- endif %}
+        {%- endfor %}
+        {% if "strict_header_checking_action" in policy -%}
+        self.strict_header_checking_action = {{ zorp_hdr_policy(policy["strict_header_checking_action"]) }} 
+        {% endif -%}
+        {% if "permitted_requests" in policy -%}
+        {% for method in policy["permitted_requests"] %}
+        self.request["{{ method |upper }}"] = (HTTP_REQ_ACCEPT, )
+        {%- endfor -%}
+        {%- endif -%}
+{% endmacro %}
+{% macro zorp_smtp_config(policy) %}
+{%- set string_types = ("autodetect_domain_from", "append_domain", "domain_name") %}
+{%- set integer_types = ("interval_transfer_noop", "max_auth_request_length", "max_response_length", "unconnected_response_code", "timeout", "max_request_length") %}
+{%- set boolean_types = ("relay_check", "permit_percent_hack", "error_soft", "permit_exclamation_mark", "permit_omission_of_angle_brackets", "resolve_host", "permit_long_responses", "add_received_header", "tls_passthrough", "require_crlf", "permit_unknown_command") %}
+        {%- for param in string_types %}
+        {%- if param in policy %}
+        self.{{ param }} = "{{ policy[param] }}"
+        {%- endif %}
+        {%- endfor %}
+        {%- for param in integer_types %}
+        {%- if param in policy %}
+        self.{{ param }} = {{ policy[param] }}
+        {%- endif %}
+        {%- endfor %}
+        {%- for param in boolean_types -%}
+        {%- if param in policy %}
+        self.{{ param }} = {{ zorp_bool(policy[param]) }}
+        {%- endif %}
+        {%- endfor %}
+        {% if "relay_domains" in policy -%}
+        self.relay_domains = ( {% for d in policy.relay_domains -%}"{{d}}", {% endfor %})
+        {% endif -%}
+        {% if "relay_domains_matcher_whitelist" in policy -%}
+        {{zorp_config_regex_matcher("relay_domains_matcher", policy.relay_domains_matcher_whitelist, policy.relay_domains_matcher_blacklist| default(None))}}
+        {% endif -%}
+
+        {% if "extensions" in policy -%}
+        {% for method in policy["extensions"] %}
+        self.request["{{ method |upper }}"] = SMTP_EXT_ACCEPT
+        {%- endfor -%}
+        {%- endif -%}
+
+{% endmacro %}
+
+{% set persistent_path = '/var/persistent' %}
+from Zorp.Core import *
+from Zorp.Proxy import *
+from Zorp.Router import AbstractRouter
+from Zorp.Dispatch import Dispatcher
+from Zorp.Service import Service
+from Zorp.Http import *
+from Zorp.Smtp import *
+from Zorp.Matcher import RegexMatcher
+from Zorp.SockAddr import SockAddrInetHostname
+
+config.options.kzorp_enabled = False
+Zone('internet', ['0.0.0.0/0', '::0/0'])
+
+
+class FileBasedRouter(AbstractRouter):
+    def __init__(self, destinations_file='/tmp/router_destinations', forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
+        super(FileBasedRouter, self).__init__(forge_addr, forge_port)
+        self.overrideable = overrideable
+        self.destinations_file = destinations_file
+        self.destinations_file_last_modify = 0
+        self.sockets = []
+        self._loadConfig()
+
+    def _loadConfig(self):
+        new_mtime = stat(self.destinations_file).st_mtime
+        if self.destinations_file_last_modify < new_mtime:
+            self.destinations_file_last_modify = new_mtime
+            sockets = []
+            with open(self.destinations_file) as dst_file:
+                for line in dst_file:
+                    address, port = line.strip().split(':', 1)
+                    sockets.append(SockAddrInet(address, int(port)))
+                    log('none', 'router.info', 4, "Added route destination '%s:%s'", (address, port))
+            self.sockets = sockets
+            log('none', 'router.info', 3, "Loaded %s route destinations", len(self.sockets))
+        else:
+            log('none', 'router.debug', 5, "Route destinations already loaded, skipping...")
+
+
+    def routeConnection(self, session):
+        super(FileBasedRouter, self).routeConnection(session)
+        self._loadConfig()
+        session.setTargetAddress(self.sockets)
+
+{% for policy in conf %}
+{%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
+{%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
+{%- if policy['policy_type'] == "L7Proxy" %}
+
+class {{proxy_name}}(PlugProxy):
+    pass
+{%- endif %}
+
+{# HTTP, HTTPWebdav #}
+{%- if policy['policy_type'] in ("HttpProxy", "HttpWebdavProxy") %}
+class {{proxy_name}}({{ policy['policy_type'] }}):
+    def config(self):
+    {{zorp_http_config(policy)}}
+        pass
+
+{# HttpURIFilter #}
+{%- elif policy['policy_type'] == "HttpURIFilterProxy" %}
+class {{proxy_name}}({{ policy['policy_type'] }}):
+    matcher = RegexMatcher(
+        match_list=(
+            {% for w_pattern in policy.matcher_whitelist -%}
+            r"{{ w_pattern }}",
+            {% endfor -%}
+            ),
+        {% if policy['matcher_blacklist']|default(None) == None %}
+        ignore_list = None
+        {% else %}
+        ignore_list=(
+            {% for b_pattern in policy.matcher_blacklist -%}
+            r"{{ b_pattern }}",
+            {% endfor -%}
+            )
+        {% endif %}
+        )
+    def config(self):
+    {{zorp_http_config(policy)}}
+        pass
+
+{%- elif policy['policy_type'] == "SmtpProxy" %}
+class {{proxy_name}}({{ policy['policy_type'] }}):
+    def config(self):
+    {{zorp_smtp_config(policy)}}
+        pass
+
+{%- endif %}
+
+{%- endfor %}
+def default():
+{% for policy in conf %}
+{%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
+{%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
+
+    {{policy_name}}_router = FileBasedRouter(destinations_file="/tmp/routes.{{loop.index}}")
+    {{policy_name}}_chainer = RoundRobinChainer()
+
+{%- if "encryption" in policy %}
+    {{ policy_name }}_client_certificate_generator = StaticCertificate(
+        certificate=Certificate.fromFile(
+            certificate_file_path="{{ persistent_path }}/{{ policy.encryption_cert }}",
+            private_key=PrivateKey.fromFile("{{ persistent_path }}/{{ policy.encryption_key }}")
+            )
+        )
+
+    {{ policy_name }}_client_ssl_options=ClientSSLOptions(
+        method=SSL_METHOD_TLSV1,
+        {%- if "encryption_cipher" in policy %}
+        cipher={{ zorp_ssl_cipher(policy.encryption_cipher) }},
+        {%- else %}
+        cipher=SSL_CIPHERS_MEDIUM,
+        {%- endif %}
+        )
+{%- if policy['encryption_offload']|default(True) %}
+    EncryptionPolicy(name="encryption_policy_{{ policy_name }}",
+        encryption=ClientOnlyEncryption(
+            client_verify=ClientNoneVerifier(),
+            client_ssl_options={{ policy_name }}_client_ssl_options,
+            client_certificate_generator={{ policy_name }}_client_certificate_generator,
+            )
+        )
+
+{%- else %}
+    {{ policy_name }}_server_ssl_options=ServerSSLOptions(
+        method=SSL_METHOD_TLSV1,
+        {%- if "encryption_cipher" in policy %}
+        cipher={{ zorp_ssl_cipher(policy.encryption_cipher) }},
+        {%- else %}
+        cipher=SSL_CIPHERS_MEDIUM,
+        {%- endif %}
+        )
+    EncryptionPolicy(name="encryption_policy_{{ policy_name }}",
+        encryption=TwoSidedEncryption(
+            server_verify=ServerNoneVerifier(),
+            server_ssl_options={{ policy_name }}_server_ssl_options,
+            server_certificate_generator=None,
+            client_verify=ClientNoneVerifier(),
+            client_ssl_options={{ policy_name }}_client_ssl_options,
+            client_certificate_generator={{ policy_name }}_client_certificate_generator,
+            )
+        )
+
+{%- endif %}
+    Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }}, encryption_policy="encryption_policy_{{ policy_name }}")
+
+{%- else %}
+    Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }})
+{%- endif %}
+{%- for port in policy.target_ports %}
+    Dispatcher(bindto=DBSockAddr(sa=SockAddrInet('0.0.0.0', {{ port }}), protocol=ZD_PROTO_TCP), service="{{ policy_name }}", threaded=TRUE)
+{%- endfor %}
+{%- endfor %}

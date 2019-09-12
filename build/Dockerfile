@@ -12,43 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.12.9-alpine AS builder
-
-RUN apk --no-cache add git openssh socat openssl util-linux openrc htop
-
-COPY /go.mod /src/go.mod
-COPY /go.sum /src/go.sum
-RUN cd /src && go mod download
-
-COPY / /src
-
-ARG DUMB_INIT_SHA256=37f2c1f0372a45554f1b89924fbb134fc24c3756efaedf11e07f599494e0eff9
-RUN wget --no-check-certificate -O /dumb-init-dist https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && \
-    echo "$DUMB_INIT_SHA256  /dumb-init-dist" | sha256sum -c -
-
-RUN mkdir -p /var/run/vars && \
-    cd /src && \
-    git config --get remote.origin.url > /var/run/vars/GIT_REPO && \
-    git rev-parse --short HEAD > /var/run/vars/GIT_HEAD_COMMIT && \
-    git describe --abbrev=0 --tags > /var/run/vars/GIT_LAST_TAG && \
-    git rev-parse --short $(cat /var/run/vars/GIT_LAST_TAG) > /var/run/vars/GIT_TAG_COMMIT && \
-    git diff $(cat /var/run/vars/GIT_HEAD_COMMIT) $(cat /var/run/vars/GIT_TAG_COMMIT) --quiet > /var/run/vars/GIT_MODIFIED1 || echo '.dev' > /var/run/vars/GIT_MODIFIED1 && \
-    git diff --quiet > /var/run/vars/GIT_MODIFIED2 || echo '.dirty' > /var/run/vars/GIT_MODIFIED2 && \
-    cat /var/run/vars/GIT_MODIFIED1 /var/run/vars/GIT_MODIFIED2 | tr -d '\n' > /var/run/vars/GIT_MODIFIED && \
-    date '+%Y-%m-%dT%H:%M:%S' > /var/run/vars/BUILD_DATE && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-        -gcflags "-N -l" \
-        -ldflags "-X main.GitRepo=$(cat /var/run/vars/GIT_REPO) -X main.GitTag=$(cat /var/run/vars/GIT_LAST_TAG) -X main.GitCommit=$(cat /var/run/vars/GIT_HEAD_COMMIT) -X main.GitDirty=$(cat /var/run/vars/GIT_MODIFIED) -X main.BuildTime=$(cat /var/run/vars/BUILD_DATE)" \
-        -o fs/zorp-ingress-controller .
-
+#FROM micado/zorpgpl:6.0.12
 FROM balasys/zorpgpl:latest
 
+#RUN echo 'Acquire::AllowInsecureRepositories "1";' > /etc/apt/apt.conf.d/98zorp
+RUN apt-get update && apt-get -y install --no-install-recommends wget python3-setuptools && rm -rf /var/lib/apt/lists/*
+RUN easy_install3 pip
 COPY /fs /
-COPY --from=builder /src/fs/zorp-ingress-controller .
-COPY --from=builder /dumb-init-dist /dumb-init
+COPY /zorp_ic /zorp_ic
+ARG DUMB_INIT_SHA256=37f2c1f0372a45554f1b89924fbb134fc24c3756efaedf11e07f599494e0eff9
+RUN wget --no-check-certificate -O /dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && \
+    echo "$DUMB_INIT_SHA256  /dumb-init" | sha256sum -c -
+COPY build/requirements.txt /tmp/requirements.txt
+
+RUN pip3 install --upgrade setuptools urllib3 chardet requests
+RUN pip3 install --upgrade -r /tmp/requirements.txt && rm /tmp/requirements.txt
+#RUN pip3 install kubernetes
 
 RUN chmod +x /dumb-init && \
     chmod +x /etc/init.d/zorp
-
 
 ENTRYPOINT ["/dumb-init", "--", "/start.sh"]

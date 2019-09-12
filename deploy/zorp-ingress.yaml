@@ -148,9 +148,8 @@ spec:
       - name: zorp-ingress
         image: balasys/zorp-ingress
         args:
-          - --default-ssl-certificate=default/tls-secret
-          - --configmap=default/zorp-configmap
-          - --default-backend-service=zorp-controller/ingress-default-backend
+          - --namespace=zorp-controller
+          - --ingress.class=zorp
         resources:
           requests:
             cpu: "500m"

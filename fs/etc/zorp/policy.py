@@ -13,9 +13,10 @@ class HealthzHttpProxy(HttpProxy):
 
         def reqRedirect(self, method, url, version):
                 self.error_status = 200
-                self.error_msg = OK
+                self.error_msg = 'OK'
                 self.error_info = 'HTTP/1.0 200 OK'
-                return HTTP_REQ_REJECT
+                self.custom_reponse_body = ''
+                return HTTP_REQ_CUSTOM_RESPONSE
 
 def default():
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
