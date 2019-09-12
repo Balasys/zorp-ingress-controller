@@ -50,8 +50,6 @@ def process_k8s_changes(zorpConfig):
     return
 
 if __name__ == '__main__':
-
-    _logger.info("Initializing Zorp Ingress Controller")
     parser = argparse.ArgumentParser(description='Kubernetes Ingress Controller based on Zorp')
     parser.add_argument('--namespace', dest='namespace', default='default',
                     help='the namespace to watch for ingresses')
