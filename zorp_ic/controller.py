@@ -92,7 +92,7 @@ class ZorpConfig(object):
         certfilename = "/etc/zorp/tls-%s.crt" % name
         self._write_and_set_perms(certfilename, secret["tls.crt"])
         keyfilename = "/etc/zorp/tls-%s.key" % name
-        self._write_and_set_perms(certfilename, secret["tls.key"])
+        self._write_and_set_perms(keyfilename, secret["tls.key"])
 
     def generate_config(self):
         if self.behaviour == 'basic':
