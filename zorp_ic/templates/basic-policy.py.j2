@@ -1,4 +1,5 @@
 from Zorp.Core import *
+from Zorp.Proxy import *
 from Zorp.Http import *
 import os.path
 
@@ -43,13 +44,13 @@ EncryptionPolicy(
                                                                 )
                                                             ),
                 {% endfor %}
-                default : StaticCertificate(
-                              certificate=Certificate.fromFile(
-                                  certificate_file_path="/etc/zorp/tls.crt",
-                                  private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
-                              )
-                          )
-            }
+            },
+            default=StaticCertificate(
+                        certificate=Certificate.fromFile(
+                            certificate_file_path="/etc/zorp/tls.crt",
+                            private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
+                        )
+            )
         )
     )
 )
