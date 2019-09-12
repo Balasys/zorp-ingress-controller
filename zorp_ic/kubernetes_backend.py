@@ -149,13 +149,13 @@ class KubernetesBackend:
                     for address in subset.addresses:
                         for port in subset.ports:
                             name = endpoint.metadata.name
-                            if name in endpoints:
-                                if port.protocol in endpoints[name]:
-                                    endpoints[name][port.protocol].append("%s:%d" % (address.ip, port.port))
+                            if port.protocol in endpoints:
+                                if name in endpoints[port.protocol]:
+                                    endpoints[port.protocol][name].append("%s:%d" % (address.ip, port.port))
                                 else:
-                                    endpoints[name][port.protocol] = ["%s:%d" % (address.ip, port.port), ]
+                                    endpoints[port.protocol][name] = ["%s:%d" % (address.ip, port.port), ]
                             else:
-                                endpoints[name] = { port.protocol : ["%s:%d" % (address.ip, port.port), ]}
+                                endpoints[port.protocol] = { name : ["%s:%d" % (address.ip, port.port), ]}
         return endpoints
 
     def _get_secret(self):
