@@ -46,7 +46,7 @@ class IngressHttpProxy(HttpProxy):
     def config(self):
         HttpProxy.config(self)
         self.error_silent = TRUE
-        self.url_mapping = {% conf.ingress.rules %}
+        self.url_mapping = {{ conf.ingress.rules }}
 
     def setServerAddress(self, host, port):
         if self.url_mapping.has_key(host):
@@ -58,9 +58,9 @@ class IngressHttpProxy(HttpProxy):
                 proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
                 self.setRequestHeader("Host", service+":"+str(port))
                 return HttpProxy.setServerAddress(self, socket.gethostbyname(service), port)
-        return HttpProxy.setServerAddress(self, socket.gethostbyname({% conf.ingress.default_service.service_name %}), {% conf.ingress.default_service.service_port %})
+        return HttpProxy.setServerAddress(self, socket.gethostbyname({{ conf.ingress.default.service_name }}), {{ conf.ingress.default.service_port }})
 
-ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={% conf.endpoints %}))
+ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={{ conf.endpoints.TCP }}))
 
 def default():
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
