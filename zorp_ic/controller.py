@@ -37,9 +37,9 @@ class ZorpConfig():
         self.ingresses = self.k8s.get_relevant_ingresses()
         self.services = self.k8s.get_relevant_services(self.ingresses)
         self.endpoints = self.k8s.get_relevant_endpoints(self.services)
-        #self.secrets= {}
-        #for secret_name in self.k8s.list_secrets():
-        #    self.secrets[secret_name] = self.k8s.get_secret(secretname)
+        self.secrets= {}
+        for secret_name in self.k8s.list_secrets():
+            self.secrets[secret_name] = self.k8s.get_secret(secretname)
         if (oldconfig['ingresses'] != self.ingresses or oldconfig['services'] != self.services or
                 oldconfig['endpoints'] != self.endpoints or oldconfig['secrets'] != self.secrets):
            self.generate_config()
