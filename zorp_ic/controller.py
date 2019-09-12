@@ -27,7 +27,7 @@ class ZorpConfig():
         f.close()
 
     def reload_zorp(self):
-        subprocess.Popen(['/usr/sbin/zorpctl', 'reload'], stdout=subprocess.PIPE)
+        res = subprocess.Popen(['/usr/sbin/zorpctl', 'reload'], stdout=subprocess.PIPE)
         output, error_ = res.communicate()
         if (error_):
             logger.error(error_)
