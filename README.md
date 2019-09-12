@@ -28,7 +28,7 @@ kubectl apply -f deploy/zorp-ingress.yaml
 
 For commit messages and general style please follow the zorp project's [CONTRIBUTING guide](https://github.com/Balasys/zorp/blob/master/CONTRIBUTING) and use that where applicable.
 
-Please use `golangci-lint run` from [github.com/golangci/golangci-lint](https://github.com/golangci/golangci-lint) for linting code.
+Please use `pylint` for linting code.
 
 ## License
 

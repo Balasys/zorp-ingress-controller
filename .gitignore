@@ -1,2 +1,7 @@
-zorp-ingress-controller
-ingress-controller
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
