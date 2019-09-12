@@ -148,7 +148,7 @@ spec:
       - name: zorp-ingress
         image: balasys/zorp-ingress
         args:
-          - --namespace=zorp-ingress
+          - --namespace=zorp-controller
           - --ingress.class=zorp
         resources:
           requests:
