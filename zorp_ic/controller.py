@@ -81,7 +81,7 @@ class ZorpConfig(object):
             os.chmod("/etc/zorp/tls.crt", 0o640)
             self.has_default_cert = True
 
-    def _write_and_set_perms(filename, content):
+    def _write_and_set_perms(self, filename, content):
         cert = open(filename, "wb")
         cert.write(content)
         cert.close()
