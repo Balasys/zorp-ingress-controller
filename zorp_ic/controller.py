@@ -55,8 +55,8 @@ class ZorpConfig(object):
 
     config = {}
 
-    def __init__(self, namespace='default', ingress_class='zorp', behaviour='basic', ingresses=None, services=None, endpoints=None, secrets=None):
-        self.config["ingresses"] = ingresses
+    def __init__(self, namespace='default', ingress_class='zorp', behaviour='basic', ingress=None, services=None, endpoints=None, secrets=None):
+        self.config["ingress"] = ingress
         self.config["services"] = services
         self.config["endpoints"] = endpoints
         self.config["secrets"] = secrets
@@ -95,8 +95,8 @@ class ZorpConfig(object):
 
     def load_k8s_config(self):
         oldconfig = deepcopy(self.config)
-        self.config["ingresses"] = self.k8s.get_relevant_ingresses()
-        self.config["services"] = self.k8s.get_relevant_services(self.config["ingresses"])
+        self.config["ingress"] = self.k8s.get_relevant_ingresses()
+        self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
         self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
         self.secrets= {}
         for secret_name in self.k8s.list_secrets():

@@ -74,18 +74,33 @@ class KubernetesBackend:
             spec["annotations"] = annotations["balasys.hu/zorp-ingress-conf"]
         return spec
 
+    def _merge_ingress_spec(self, ingresses, ingress):
+        if "default" not in ingresses and "default" in ingress:
+            ingresses["default"] = ingress["default"]
+        ingresses["services"].extend(ingress["services"])
+        rules = ingress["rules"]
+        for host in rules.keys():
+            if host in ingresses["rules"]:
+                for path in rules[host]:
+                    if path not in ingresses["rules"][host]:
+                        ingresses["rules"][host][path] = rules[host][path]
+            else:
+                ingresses["rules"][host] = ingress["rules"][host]
+
     def get_relevant_ingresses(self):
-        ingresses = {}
+        ingresses = {'rules' : {}, 'services': []}
         ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
             annotations = ingress.metadata.annotations
             if "kubernetes.io/ingress.class" in annotations:
                 if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
-                    ingresses[ingress.metadata.name] = self._get_ingress_spec(ingress)
+                    ingress = self._get_ingress_spec(ingress)
+                    self._merge_ingress_spec(ingresses, ingress)
                 else:
                     self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (self._getName(ingress), annotations["kubernetes.io/ingress.class"]))
             else:
-                ingresses[ingress.metadata.name] = self._get_ingress_spec(ingress)
+                ingress = self._get_ingress_spec(ingress)
+                self._merge_ingress_spec(ingresses, ingress)
         return ingresses
 
     def _get_services(self):
@@ -102,13 +117,10 @@ class KubernetesBackend:
 
         return api_response
 
-    def get_relevant_services(self, ingresses):
-        relevant_services = []
-        for ingress in ingresses.values():
-            relevant_services.extend(ingress["services"])
+    def get_relevant_services(self, ingress):
         services = {}
         for service in self._get_services().items:
-            if service.metadata.name in relevant_services:
+            if service.metadata.name in ingress["services"]:
                 ports = {}
                 for port in service.spec.ports:
                     ports[port.protocol] = { port.port: port.target_port }
