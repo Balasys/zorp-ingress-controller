@@ -78,10 +78,10 @@ class ZorpConfig(object):
             self.has_default_cert = True
 
     def write_secret(self, name, secret):
-        cert = open("/etc/zorp/tls-%s.crt" % name, "w")
+        cert = open("/etc/zorp/tls-%s.crt" % name, "wb")
         cert.write(secret["tls.crt"])
         cert.close()
-        key = open("/etc/zorp/tls-%s.key" % name, "w")
+        key = open("/etc/zorp/tls-%s.key" % name, "wb")
         key.write(secret["tls.key"])
         key.close()
 
@@ -90,7 +90,7 @@ class ZorpConfig(object):
             if self.has_default_cert is False:
                 self.generate_self_signed_cert()
             for secret in self.secrets:
-                self.write_secret(name, secret)
+                self.write_secret(secret, self.secrets[secret])
             policyPy = ZorpConfigGenerator("templates/")
             policyPy.renderTemplate("basic-policy.py.j2", self.config)
         else:

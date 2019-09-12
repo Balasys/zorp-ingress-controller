@@ -33,11 +33,16 @@ EncryptionPolicy(
             disable_tlsv1_2=FALSE,
             disable_compression=FALSE
         ),
-        client_certificate_generator=StaticCertificate(
-            certificate=Certificate.fromFile(
-                certificate_file_path="/etc/zorp/tls.pem",
-                private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
-            )
+        client_certificate_generator=SNIBasedCertificate(
+            hostname_certificate_map={
+                {% for host, secret in conf.ingress.tls.items() %}
+                RegexpMatcher(match_list=("{{ host }}", )): StaticCertificate(certificate=Certificate.fromFile(certificate_file_path="/etc/zorp/tls-{{ secret }}.crt", private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ secret }}.key", passphrase=""))),
+                {% endfor %}
+                default : StaticCertificate(
+                              certificate=Certificate.fromFile(
+                                  certificate_file_path="/etc/zorp/tls.pem",
+                                  private_key=PrivateKey.fromFile("/etc/zorp/tls.key")
+                          )
         )
     )
 )
@@ -57,8 +62,8 @@ class IngressHttpProxy(HttpProxy):
                 port = rule["port"]
                 proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
                 self.setRequestHeader("Host", service+":"+str(port))
-                return HttpProxy.setServerAddress(self, socket.gethostbyname(service), port)
-        return HttpProxy.setServerAddress(self, socket.gethostbyname({{ conf.ingress.default.service_name }}), {{ conf.ingress.default.service_port }})
+                return HttpProxy.setServerAddress(self, service, port)
+        return HttpProxy.setServerAddress(self, {{ conf.ingress.default.service_name }}, {{ conf.ingress.default.service_port }})
 
 ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={{ conf.endpoints.TCP }}))
 
