@@ -77,8 +77,8 @@ class ZorpConfig(object):
         else:
             shutil.chown("/etc/zorp/tls.key", user="root", group="zorp")
             shutil.chown("/etc/zorp/tls.crt", user="root", group="zorp")
-            os.chmod("/etc/zorp/tls.key", 0640)
-            os.chmod("/etc/zorp/tls.crt", 0640)
+            os.chmod("/etc/zorp/tls.key", 0o640)
+            os.chmod("/etc/zorp/tls.crt", 0o640)
             self.has_default_cert = True
 
     def _write_and_set_perms(filename, content):
@@ -86,7 +86,7 @@ class ZorpConfig(object):
         cert.write(content)
         cert.close()
         shutil.chown(filename, user="root", group="zorp")
-        os.chmod(filename, 0640)
+        os.chmod(filename, 0o640)
 
     def write_secret(self, name, secret):
         certfilename = "/etc/zorp/tls-%s.crt" % name
