@@ -25,7 +25,7 @@ RUN wget --no-check-certificate -O /dumb-init https://github.com/Yelp/dumb-init/
     echo "$DUMB_INIT_SHA256  /dumb-init" | sha256sum -c -
 COPY build/requirements.txt /tmp/requirements.txt
 
-RUN pip3 install --upgrade setuptools urllib3 requests
+RUN pip3 install --upgrade setuptools urllib3 chardet requests
 RUN pip3 install --upgrade -r /tmp/requirements.txt && rm /tmp/requirements.txt
 #RUN pip3 install kubernetes
 
