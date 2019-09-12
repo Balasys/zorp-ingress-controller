@@ -170,6 +170,8 @@ class KubernetesBackend:
     def read_secret(self, name):
         secret = self._get_secret()
 
+        if secret is None:
+            raise KubernetesBackendKeyNotFoundError
         if name not in secret.data:
             raise KubernetesBackendKeyNotFoundError
 
