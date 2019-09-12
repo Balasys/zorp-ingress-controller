@@ -23,7 +23,7 @@ class ZorpConfig():
 
     def generate_self_signed_cert(self):
         self._logger.info("Generating self-signed certificate for default TLS service")
-        res = subprocess.Popen(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '3650', '-sha256', '-nodes', '-x509', '-subj', '/CN=Ingress Default Certificate', '-keyout' '/etc/zorp/default-tls.key', '-out', '/etc/zorp/default-tls.cert'])
+        res = subprocess.Popen(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '3650', '-sha256', '-nodes', '-x509', '-subj', '/CN=Ingress Default Certificate', '-keyout', '/etc/zorp/default-tls.key', '-out', '/etc/zorp/default-tls.cert'])
         output, error_ = res.communicate()
         if (error_):
             logger.error(error_)
