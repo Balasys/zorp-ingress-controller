@@ -146,21 +146,20 @@ class KubernetesBackend:
                                 endpoints[name] = { port.protocol : ["%s:%d" % (address.ip, port.port), ]}
         return endpoints
 
-    def _is_secret_initialized(self):
-        try:
-            self._get_secret()
-        except KubernetesBackendError:
-            return False
-
-        return True
-
     def _get_secret(self):
         try:
             secret = self._api.read_namespaced_secret(self.namespace, 'tls-secret')
+        except kubernetes.client.rest.ApiException as api_exception:
+            if exception.status == 404:
+                self._logger.error("Failed to fetch secret; namespace='%s', secret='%s'" % self.namespace, "tls-secret")
+                return None
+            else:
+                self._logger.error('Failed to read K8S Secret.')
+                self._logger.info(error)
+                raise KubernetesBackendError()
         except Exception as error:
             self._logger.error('Failed to read K8S Secret.')
             self._logger.info(error)
-
             raise KubernetesBackendError()
 
         if secret.data is None:
