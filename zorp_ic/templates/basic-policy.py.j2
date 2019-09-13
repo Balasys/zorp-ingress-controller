@@ -71,7 +71,7 @@ class IngressHttpProxy(HttpProxy):
                 proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
                 self.setRequestHeader("Host", service+":"+str(port))
                 return HttpProxy.setServerAddress(self, service, port)
-        return HttpProxy.setServerAddress(self, {{ conf.ingress.default.service }}, {{ conf.ingress.default.port }})
+        return HttpProxy.setServerAddress(self, "{{ conf.ingress.default.service }}", {{ conf.ingress.default.port }})
 
 ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={{ conf.endpoints.TCP }}))
 
