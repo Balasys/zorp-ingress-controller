@@ -84,7 +84,7 @@ class IngressHttpProxy(HttpProxy):
                 rule = self.url_mapping[host][match]
                 service = rule["service"]
                 port = rule["port"]
-                tagetport = self.ingress_service_ports[service]["TCP"][port]
+                targetport = self.ingress_service_ports[service]["TCP"][port]
                 proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, self.request_url_file, service, targetport))
                 self.setRequestHeader("Host", service+":"+str(targetport))
                 return HttpProxy.setServerAddress(self, service, targetport)
