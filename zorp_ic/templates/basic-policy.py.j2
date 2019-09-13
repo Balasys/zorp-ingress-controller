@@ -1,5 +1,6 @@
 from Zorp.Core import *
 from Zorp.Proxy import *
+from Zorp.Resolver import *
 from Zorp.Http import *
 import os.path
 
@@ -55,25 +56,47 @@ EncryptionPolicy(
     )
 )
 
+class K8SResolver(HashResolver):
+    def resolve(self, host, port):
+        try:
+            ip_list = self.mapping[port][host]
+            if type(ip_list) == types.StringType:
+                ip_list = (ip_list,)
+            return map(lambda ip: create_sockaddr(socket.getaddrinfo(ip, None)[0], port), ip_list)
+        except KeyError:
+            return None
+
+
 class IngressHttpProxy(HttpProxy):
     def config(self):
         HttpProxy.config(self)
         self.error_silent = TRUE
         self.url_mapping = {{ conf.ingress.rules }}
+        self.ingress_default_service="{{ conf.ingress.default }}"
+        self.ingress_service_ports = {{ conf.services }}
 
     def setServerAddress(self, host, port):
         if self.url_mapping.has_key(host):
-            match = os.path.commonprefix(self.request_url_file, self.url_mapping[host].keys())
+            matches = []
+            for path in self.url_mapping[host].keys():
+                if self.request_url_file.startswith(path):
+                    matches.append(path)
+            match = max(matches)
             if self.url_mapping[host].has_key(match):
                 rule = self.url_mapping[host][match]
                 service = rule["service"]
                 port = rule["port"]
-                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
-                self.setRequestHeader("Host", service+":"+str(port))
-                return HttpProxy.setServerAddress(self, service, port)
-        return HttpProxy.setServerAddress(self, {{ conf.ingress.default.service }}, {{ conf.ingress.default.port }})
+                targetport = self.ingress_service_ports[service]["TCP"][port]
+                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, self.request_url_file, service, targetport))
+                self.setRequestHeader("Host", service+":"+str(targetport))
+                return HttpProxy.setServerAddress(self, service, targetport)
+        if self.ingress_default_service != "":
+            return HttpProxy.setServerAddress(self, self.ingress_default_service["service"], self.ingress_default_service["port"])
+        else:
+            self.error_msg = "Not found"
+            raise ServiceException, "No service found for this ingress host=%s port=%s" % (host, port)
 
-ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={{ conf.endpoints.TCP }}))
+ResolverPolicy(name="k8sResolver", resolver=K8SResolver(mapping={{ conf.endpoints.TCP }}))
 
 def default():
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
