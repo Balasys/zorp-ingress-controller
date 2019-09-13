@@ -87,9 +87,8 @@ class IngressHttpProxy(HttpProxy):
         if self.ingress_default_service != "":
             return HttpProxy.setServerAddress(self, self.ingress_default_service["service"], self.ingress_default_service["port"])
         else:
-            self.error_status = 404
             self.error_msg = "Not found"
-            raise ZoneException, "No service found for this ingress host=%s port=%s" % (host, port)
+            raise ServiceException, "No service found for this ingress host=%s port=%s" % (host, port)
 
 ResolverPolicy(name="k8sResolver", resolver=K8SResolver(mapping={{ conf.endpoints.TCP }}))
 
