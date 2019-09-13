@@ -71,6 +71,8 @@ class IngressHttpProxy(HttpProxy):
         HttpProxy.config(self)
         self.error_silent = TRUE
         self.url_mapping = {{ conf.ingress.rules }}
+        self.ingress_default_service="{{ conf.ingress.default.service }}"
+        self.ingress_default_port={{ conf.ingress.default.port }}
 
     def setServerAddress(self, host, port):
         if self.url_mapping.has_key(host):
@@ -82,7 +84,12 @@ class IngressHttpProxy(HttpProxy):
                 proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
                 self.setRequestHeader("Host", service+":"+str(port))
                 return HttpProxy.setServerAddress(self, service, port)
-        return HttpProxy.setServerAddress(self, "{{ conf.ingress.default.service }}", {{ conf.ingress.default.port }})
+        if self.ingress_default_service != "":
+            return HttpProxy.setServerAddress(self, self.ingress_default_service, self.ingress_default_port)
+        else:
+            self.error_status = 404
+            self.error_msg = "Not found"
+            raise ZoneException, "No service found for this ingress host=%s port=%s" % (host, port)
 
 ResolverPolicy(name="k8sResolver", resolver=K8SResolver(mapping={{ conf.endpoints.TCP }}))
 
