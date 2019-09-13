@@ -72,8 +72,7 @@ class IngressHttpProxy(HttpProxy):
         HttpProxy.config(self)
         self.error_silent = TRUE
         self.url_mapping = {{ conf.ingress.rules }}
-        self.ingress_default_service="{{ conf.ingress.default.service }}"
-        self.ingress_default_port={{ conf.ingress.default.port }}
+        self.ingress_default_service="{{ conf.ingress.default }}"
 
     def setServerAddress(self, host, port):
         if self.url_mapping.has_key(host):
@@ -86,7 +85,7 @@ class IngressHttpProxy(HttpProxy):
                 self.setRequestHeader("Host", service+":"+str(port))
                 return HttpProxy.setServerAddress(self, service, port)
         if self.ingress_default_service != "":
-            return HttpProxy.setServerAddress(self, self.ingress_default_service, self.ingress_default_port)
+            return HttpProxy.setServerAddress(self, self.ingress_default_service["service"], self.ingress_default_service["port"])
         else:
             self.error_status = 404
             self.error_msg = "Not found"
