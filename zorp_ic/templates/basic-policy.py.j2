@@ -55,6 +55,17 @@ EncryptionPolicy(
     )
 )
 
+class K8SResolver(HashResolver):
+    def resolve(self, host, port):
+        try:
+            ip_list = self.mapping[port][host]
+            if type(ip_list) == types.StringType:
+                ip_list = (ip_list,)
+            return map(lambda ip: create_sockaddr(socket.getaddrinfo(ip, None)[0], port), ip_list)
+        except KeyError:
+            return None
+
+
 class IngressHttpProxy(HttpProxy):
     def config(self):
         HttpProxy.config(self)
@@ -73,7 +84,7 @@ class IngressHttpProxy(HttpProxy):
                 return HttpProxy.setServerAddress(self, service, port)
         return HttpProxy.setServerAddress(self, "{{ conf.ingress.default.service }}", {{ conf.ingress.default.port }})
 
-ResolverPolicy(name="k8sResolver", resolver=HashResolver(mapping={{ conf.endpoints.TCP }}))
+ResolverPolicy(name="k8sResolver", resolver=K8SResolver(mapping={{ conf.endpoints.TCP }}))
 
 def default():
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
