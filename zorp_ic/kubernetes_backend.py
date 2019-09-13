@@ -152,21 +152,26 @@ class KubernetesBackend:
         return api_response
 
     def get_relevant_endpoints(self, services):
-        endpoints = {}
+        tcp_endpoints = {}
+        udp_endpoints = {}
         for endpoint in self._get_endpoints().items:
             if endpoint.metadata.name in services.keys():
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
-                            name = endpoint.metadata.name
-                            if port.protocol in endpoints:
-                                if name in endpoints[port.protocol]:
-                                    endpoints[port.protocol][name].append("%s:%d" % (address.ip, port.port))
-                                else:
-                                    endpoints[port.protocol][name] = ["%s:%d" % (address.ip, port.port), ]
+                            name = endpoint.metadata.namey
+                            if port.protocol == "TCP":
+                                endpoints = tcp_endpoints
                             else:
-                                endpoints[port.protocol] = { name : ["%s:%d" % (address.ip, port.port), ]}
-        return endpoints
+                                endpoints = udp_endpoints
+                            if port.port in endpoints:
+                                if name in endpoints[port.port]:
+                                    endpoints[port.port][name].append(address.ip)
+                                else:
+                                    endpoints[port.port][name] = [address.ip, ]
+                            else:
+                                endpoints[port.port] = { name : [address.ip, ]}
+        return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
 
     def _get_secret(self, namespace=None, name='tls-secret'):
         if namespace is None:
