@@ -159,7 +159,7 @@ class KubernetesBackend:
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
-                            name = endpoint.metadata.namey
+                            name = endpoint.metadata.name
                             if port.protocol == "TCP":
                                 endpoints = tcp_endpoints
                             else:
