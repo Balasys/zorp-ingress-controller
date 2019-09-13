@@ -73,17 +73,21 @@ class IngressHttpProxy(HttpProxy):
         self.error_silent = TRUE
         self.url_mapping = {{ conf.ingress.rules }}
         self.ingress_default_service="{{ conf.ingress.default }}"
+        self.ingress_service_ports = {{ conf.services }}
 
     def setServerAddress(self, host, port):
         if self.url_mapping.has_key(host):
-            match = os.path.commonprefix([self.request_url_file, ].extend(self.url_mapping[host].keys()))
+            matchlist = [self.request_url_file,]
+            matchlist.extend(self.url_mapping[host].keys())
+            match = os.path.commonprefix(matchlist)
             if self.url_mapping[host].has_key(match):
                 rule = self.url_mapping[host][match]
                 service = rule["service"]
                 port = rule["port"]
-                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, path, service, port))
-                self.setRequestHeader("Host", service+":"+str(port))
-                return HttpProxy.setServerAddress(self, service, port)
+                tagetport = self.ingress_service_ports[service][port]
+                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, self.request_url_path, service, targetport))
+                self.setRequestHeader("Host", service+":"+str(targetport))
+                return HttpProxy.setServerAddress(self, service, targetport)
         if self.ingress_default_service != "":
             return HttpProxy.setServerAddress(self, self.ingress_default_service["service"], self.ingress_default_service["port"])
         else:
