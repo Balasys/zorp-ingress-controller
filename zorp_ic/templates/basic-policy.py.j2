@@ -77,9 +77,11 @@ class IngressHttpProxy(HttpProxy):
 
     def setServerAddress(self, host, port):
         if self.url_mapping.has_key(host):
-            matchlist = [self.request_url_file,]
-            matchlist.extend(self.url_mapping[host].keys())
-            match = os.path.commonprefix(matchlist)
+            matches = []
+            for path in self.url_mapping[host].keys():
+                if self.request_url_file.startswith(path):
+                    matches.append(path)
+            match = max(matches)
             if self.url_mapping[host].has_key(match):
                 rule = self.url_mapping[host][match]
                 service = rule["service"]
