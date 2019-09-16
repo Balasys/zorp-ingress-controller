@@ -81,6 +81,7 @@ class IngressHttpProxy(HttpProxy):
             for path in self.url_mapping[host].keys():
                 if self.request_url_file.startswith(path):
                     matches.append(path)
+            #returns the longest string if the list only contains strings
             match = max(matches)
             if self.url_mapping[host].has_key(match):
                 rule = self.url_mapping[host][match]
