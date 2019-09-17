@@ -18,5 +18,5 @@ script:
   - docker build -t balasys/zorp-ingress -f build/Dockerfile .
   - echo "Current branch is ${TRAVIS_BRANCH}, tagging container balasys/zorp-ingress:${TRAVIS_BRANCH}"
   - docker tag balasys/zorp-ingress:latest balasys/zorp-ingress:${TRAVIS_BRANCH}
-  - if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then docker push balasys/zorp-ingress:${TRAVIS_BRANCH}; fi;
-  - if [ "${TRAVIS_PULL_REQUEST}" == "false" -a "${TRAVIS_BRANCH}" == "master" ]; then docker push balasys/zorp-ingress:latest; fi;
+  - if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then docker push balasys/zorp-ingress:${TRAVIS_BRANCH} ; fi;
+  - if [ "${TRAVIS_PULL_REQUEST}" == "false" -a "${TRAVIS_BRANCH}" == "master" ]; then docker push balasys/zorp-ingress:latest ; fi;
