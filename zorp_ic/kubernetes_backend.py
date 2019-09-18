@@ -77,13 +77,15 @@ class KubernetesBackend:
             services.append(backend_service)
         spec["services"] = services
         annotations = ingress.metadata.annotations
-        if "balasys.hu/zorp-ingress-conf" in annotations:
-            spec["annotations"] = annotations["balasys.hu/zorp-ingress-conf"]
+        if "zorp.ingress.kubernetes.io/conf" in annotations:
+            spec["annotations"] = annotations["zorp.ingress.kubernetes.io/conf"]
         return spec
 
     def _merge_ingress_spec(self, ingresses, ingress):
         if "default" not in ingresses and "default" in ingress:
             ingresses["default"] = ingress["default"]
+        if "annotation" not in ingresses and "annotation" in ingress:
+            ingresses["annotation"] = ingress["annotation"]
         ingresses["services"].extend(ingress["services"])
         for host in ingress["tls"]:
             if host not in ingresses["tls"]:
