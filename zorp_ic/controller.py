@@ -69,7 +69,7 @@ class ZorpConfig(object):
         self.has_default_cert = os.path.isfile('/etc/zorp/tls.key')
 
     def generate_self_signed_cert(self):
-        self._logger.error("Generating self-signed certificate for default TLS service")
+        self._logger.info("Generating self-signed certificate for default TLS service")
         res = subprocess.Popen(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '3650', '-sha256', '-nodes', '-x509', '-subj', '/CN=Ingress Default Certificate', '-keyout', '/etc/zorp/tls.key', '-out', '/etc/zorp/tls.crt'])
         output, error_ = res.communicate()
         if (error_):
@@ -95,18 +95,29 @@ class ZorpConfig(object):
         self._write_and_set_perms(keyfilename, secret["tls.key"])
 
     def generate_config(self):
-        if self.behaviour == 'basic':
-            if self.has_default_cert is False:
-                self.generate_self_signed_cert()
-            for secret in self.secrets:
-                self.write_secret(secret, self.secrets[secret])
-            policyPy = ZorpConfigGenerator("templates/")
-            policyPy.renderTemplate("basic-policy.py.j2", self.config)
-        else:
-            pass
+        # debug output
         f = open("/tmp/k8s-config", "w")
         f.write(str(self.config)+"\n")
         f.close()
+
+        if self.has_default_cert is False:
+            self.generate_self_signed_cert()
+        for secret in self.secrets:
+            self.write_secret(secret, self.secrets[secret])
+        policyPy = ZorpConfigGenerator("templates/")
+        if self.behaviour == 'basic':
+            policyPy.renderTemplate("basic-policy.py.j2", self.config)
+            return True
+        if self.behaviour == 'tosca':
+            annotation = self.config["ingress"].get("annotation", None)
+            if annotation is not None:
+                policyPy.renderTemplate("tosca-policy.py.j2", self.config["ingress"]["annotation"])
+                return True
+            else:
+                self._logger.error("Missing ingress annotation, not generating configuration")
+                return False
+        self._logger.error("Unexpected behaviour value, not generating configuration")
+        return False
 
     def reload_zorp(self):
         self._logger.info("Configuration changed, reloading Zorp")
@@ -122,8 +133,10 @@ class ZorpConfig(object):
         self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
         self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
         if oldconfig != self.config:
-           self.generate_config()
-           self.reload_zorp()
+           if self.generate_config():
+               self.reload_zorp()
+           else:
+               self._logger.error("Failed generating configration, not reloading")
 
 def process_k8s_changes(zorpConfig):
     zorpConfig.load_k8s_config()
