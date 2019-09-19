@@ -122,25 +122,26 @@ class ZorpConfig(object):
 
     def load_k8s_config(self):
         oldconfig = deepcopy(self.config)
-        config_loaded = False
-        if self.behaviour == "basic":
-            self.config["ingress"] = self.k8s.get_relevant_ingresses()
-            self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
-            self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
-            self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
-            config_loaded = True
-        else:
-            self.config["ingress"] = self.k8s.get_relevant_ingresses()
-            annotation = self.config["ingress"].get("annotation", None)
-            if annotation is not None:
-                self.config["conf"] = json.loads(annotation)
-            self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
-            self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
-            config_loaded = True
-        self.write_config_debug()
-        if oldconfig != self.config and config_loaded:
-           self.generate_config()
-           self.reload_zorp()
+        try:
+            if self.behaviour == "basic":
+                self.config["ingress"] = self.k8s.get_relevant_ingresses()
+                self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
+                self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
+                self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
+            else:
+                self.config["ingress"] = self.k8s.get_relevant_ingresses()
+                annotation = self.config["ingress"].get("annotation", None)
+                if annotation is not None:
+                    self.config["conf"] = json.loads(annotation)
+                self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
+                self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
+            self.write_config_debug()
+            if oldconfig != self.config:
+                self.generate_config()
+                self.reload_zorp()
+        except Exception:
+            self.config = oldconfig
+            raise
 
 def process_k8s_changes(zorpConfig):
     zorpConfig.load_k8s_config()
