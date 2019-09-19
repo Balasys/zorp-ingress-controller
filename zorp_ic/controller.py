@@ -139,7 +139,7 @@ class ZorpConfig(object):
             config_loaded = True
         self.write_config_debug()
         if oldconfig != self.config and config_loaded:
-           self.generate_config():
+           self.generate_config()
            self.reload_zorp()
 
 def process_k8s_changes(zorpConfig):
