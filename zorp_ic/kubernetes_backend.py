@@ -175,6 +175,33 @@ class KubernetesBackend:
                                 endpoints[port.port] = { name : [address.ip, ]}
         return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
 
+    def get_endpoints_from_annotation(self, annotation):
+        relevant_ports = []
+        for rule in annotation:
+            if "ports" in rule:
+                relevant_ports.extend(annotation["ports"])
+
+        tcp_endpoints = {}
+        udp_endpoints = {}
+        for endpoint in self._get_endpoints().items:
+            for subset in endpoint.subsets:
+                for address in subset.addresses:
+                    for port in subset.ports:
+                        if port.port in relevant_ports
+                            name = endpoint.metadata.name
+                            if port.protocol == "TCP":
+                                endpoints = tcp_endpoints
+                            else:
+                                endpoints = udp_endpoints
+                            if port.port in endpoints:
+                                if name in endpoints[port.port]:
+                                    endpoints[port.port][name].append(address.ip)
+                                else:
+                                    endpoints[port.port][name] = [address.ip, ]
+                            else:
+                                endpoints[port.port] = { name : [address.ip, ]}
+        return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
+
     def _get_secret(self, namespace=None, name='tls-secret'):
         if namespace is None:
             namespace = self.namespace
@@ -232,3 +259,11 @@ class KubernetesBackend:
         if secret is None:
             return []
         return base64.b64decode(secret.data.keys())
+
+    def get_secrets_from_annotation(self, annotation):
+        secrets = {}
+        for rule in annotation:
+            if "encryption_cert" in rule and "encryption_key" in rule:
+                secret = self.read_named_tls_secret(self.namespace, rule["encryption_cert"])
+                secrets[rule["encryption_cert"]] = secret
+        return secrets
