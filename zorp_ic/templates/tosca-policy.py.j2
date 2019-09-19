@@ -17,7 +17,7 @@ HTTP_HDR_{{ p|upper }}
 {%- endmacro %}
 
 {%- macro zorp_config_regex_matcher(name, whitelist, blacklist) %}
-        self.{{ name }} = RegexMatcher(
+        self.{{ name }} = RegexpMatcher(
             match_list=(
                 {% for w_pattern in whitelist -%}
                 r"{{ w_pattern }}",
@@ -106,7 +106,7 @@ from Zorp.Dispatch import Dispatcher
 from Zorp.Service import Service
 from Zorp.Http import *
 from Zorp.Smtp import *
-from Zorp.Matcher import RegexMatcher
+from Zorp.Matcher import RegexpMatcher
 from Zorp.SockAddr import SockAddrInetHostname
 
 config.options.kzorp_enabled = False
@@ -160,7 +160,7 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
 {# HttpURIFilter #}
 {%- elif policy['policy_type'] == "HttpURIFilterProxy" %}
 class {{proxy_name}}({{ policy['policy_type'] }}):
-    matcher = RegexMatcher(
+    matcher = RegexpMatcher(
         match_list=(
             {% for w_pattern in policy.matcher_whitelist -%}
             r"{{ w_pattern }}",
