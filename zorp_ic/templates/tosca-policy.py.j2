@@ -119,7 +119,7 @@ class K8SRouter(AbstractRouter):
         self.overrideable = overrideable
         self.destinations_file = destinations_file
         self.destinations_file_last_modify = 0
-        self.endpoints = {{ conf.endpoints.TCP }}
+        self.endpoints = {{ endpoints.TCP }}
         self.sockets = []
         self._loadConfig()
 

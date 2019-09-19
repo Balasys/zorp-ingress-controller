@@ -133,7 +133,7 @@ class ZorpConfig(object):
                 annotation = self.config["ingress"].get("annotation", None)
                 if annotation is not None:
                     self.config["conf"] = json.loads(annotation)
-                self.config["conf"]["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
+                self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
                 self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
             self.write_config_debug()
             if oldconfig != self.config:
