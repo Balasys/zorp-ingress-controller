@@ -109,7 +109,7 @@ class ZorpConfig(object):
         if self.behaviour == 'basic':
             policyPy.renderTemplate("basic-policy.py.j2", self.config)
         if self.behaviour == 'tosca':
-            policyPy.renderTemplate("tosca-policy.py.j2", {"conf" : self.config["conf"], "endpoints" : self.config["endpoints"]})
+            policyPy.renderTemplate("tosca-policy.py.j2", self.config["conf"])
         self._logger.error("Unexpected behaviour value, not generating configuration")
         return False
 
@@ -133,7 +133,7 @@ class ZorpConfig(object):
                 annotation = self.config["ingress"].get("annotation", None)
                 if annotation is not None:
                     self.config["conf"] = json.loads(annotation)
-                self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
+                self.config["conf"]["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
                 self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
             self.write_config_debug()
             if oldconfig != self.config:
