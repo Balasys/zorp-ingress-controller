@@ -95,12 +95,12 @@ class ZorpConfig(object):
         keyfilename = "/etc/zorp/tls-%s.key" % name
         self._write_and_set_perms(keyfilename, secret["tls.key"])
 
-    def generate_config(self):
-        # debug output
+    def write_config_debug(self):
         f = open("/tmp/k8s-config", "w")
         f.write(str(self.config)+"\n")
         f.close()
 
+    def generate_config(self):
         if self.has_default_cert is False:
             self.generate_self_signed_cert()
         for secret in self.secrets:
@@ -122,21 +122,23 @@ class ZorpConfig(object):
 
     def load_k8s_config(self):
         oldconfig = deepcopy(self.config)
+        config_loaded = False
         if self.behaviour == "basic":
             self.config["ingress"] = self.k8s.get_relevant_ingresses()
             self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
             self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
             self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
+            config_loaded = True
         else:
             self.config["ingress"] = self.k8s.get_relevant_ingresses()
             annotation = self.config["ingress"].get("annotation", None)
             if annotation is not None:
                 self.config["conf"] = json.loads(annotation)
-            else:
-                raise KeyError("Missing ingress annotation, not generating configuration")
             self.config["conf"]["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
             self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
-        if oldconfig != self.config:
+            config_loaded = True
+        self.write_config_debug()
+        if oldconfig != self.config and config_loaded:
            self.generate_config():
            self.reload_zorp()
 
