@@ -179,7 +179,7 @@ class KubernetesBackend:
         relevant_ports = []
         for rule in annotation:
             if "target_ports" in rule:
-                relevant_ports.extend(annotation["ports"])
+                relevant_ports.extend(annotation["target_ports"])
 
         tcp_endpoints = {}
         udp_endpoints = {}
