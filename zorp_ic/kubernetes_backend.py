@@ -184,22 +184,23 @@ class KubernetesBackend:
         tcp_endpoints = {}
         udp_endpoints = {}
         for endpoint in self._get_endpoints().items:
-            for subset in endpoint.subsets:
-                for address in subset.addresses:
-                    for port in subset.ports:
-                        if port.port in relevant_ports:
-                            name = endpoint.metadata.name
-                            if port.protocol == "TCP":
-                                endpoints = tcp_endpoints
-                            else:
-                                endpoints = udp_endpoints
-                            if port.port in endpoints:
-                                if name in endpoints[port.port]:
-                                    endpoints[port.port][name].append(address.ip)
+            if endpoint.subsets is not None:
+                for subset in endpoint.subsets:
+                    for address in subset.addresses:
+                        for port in subset.ports:
+                            if port.port in relevant_ports:
+                                name = endpoint.metadata.name
+                                if port.protocol == "TCP":
+                                    endpoints = tcp_endpoints
                                 else:
-                                    endpoints[port.port][name] = [address.ip, ]
-                            else:
-                                endpoints[port.port] = { name : [address.ip, ]}
+                                    endpoints = udp_endpoints
+                                if port.port in endpoints:
+                                    if name in endpoints[port.port]:
+                                        endpoints[port.port][name].append(address.ip)
+                                    else:
+                                        endpoints[port.port][name] = [address.ip, ]
+                                else:
+                                    endpoints[port.port] = { name : [address.ip, ]}
         return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
 
     def _get_secret(self, namespace=None, name='tls-secret'):
