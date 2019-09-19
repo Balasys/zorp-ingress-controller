@@ -78,7 +78,7 @@ class KubernetesBackend:
         spec["services"] = services
         annotations = ingress.metadata.annotations
         if "zorp.ingress.kubernetes.io/conf" in annotations:
-            spec["annotations"] = annotations["zorp.ingress.kubernetes.io/conf"]
+            spec["annotation"] = annotations["zorp.ingress.kubernetes.io/conf"]
         return spec
 
     def _merge_ingress_spec(self, ingresses, ingress):
