@@ -178,7 +178,7 @@ class KubernetesBackend:
     def get_endpoints_from_annotation(self, annotation):
         relevant_ports = []
         for rule in annotation:
-            if "ports" in rule:
+            if "target_ports" in rule:
                 relevant_ports.extend(annotation["ports"])
 
         tcp_endpoints = {}
