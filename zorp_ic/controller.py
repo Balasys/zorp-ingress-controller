@@ -110,8 +110,6 @@ class ZorpConfig(object):
             policyPy.renderTemplate("basic-policy.py.j2", self.config)
         if self.behaviour == 'tosca':
             policyPy.renderTemplate("tosca-policy.py.j2", {"conf": self.config["conf"], "endpoints": self.config["endpoints"]})
-        self._logger.error("Unexpected behaviour value, not generating configuration")
-        return False
 
     def reload_zorp(self):
         self._logger.info("Configuration changed, reloading Zorp")

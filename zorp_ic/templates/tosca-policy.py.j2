@@ -243,9 +243,11 @@ def default():
         )
 
 {%- endif %}
+
     Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }}, encryption_policy="encryption_policy_{{ policy_name }}")
 
 {%- else %}
+
     Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }})
 {%- endif %}
 {%- for port in policy.target_ports %}
