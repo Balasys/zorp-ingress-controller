@@ -114,22 +114,20 @@ Zone('internet', ['0.0.0.0/0', '::0/0'])
 
 
 class FileBasedRouter(AbstractRouter):
-    def __init__(self, destinations_file='/tmp/router_destinations', forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
+    def __init__(self, destinations_file='/etc/zorp/endpoints', forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
         super(FileBasedRouter, self).__init__(forge_addr, forge_port)
         self.overrideable = overrideable
         self.destinations_file = destinations_file
         self.destinations_file_last_modify = 0
+        self.endpoints = {{ conf.endpoints.TCP }}
         self.sockets = []
         self._loadConfig()
 
     def _loadConfig(self):
-        new_mtime = stat(self.destinations_file).st_mtime
-        if self.destinations_file_last_modify < new_mtime:
-            self.destinations_file_last_modify = new_mtime
-            sockets = []
-            with open(self.destinations_file) as dst_file:
-                for line in dst_file:
-                    address, port = line.strip().split(':', 1)
+        sockets = []
+        for port in self.endpoints:
+            for service in endpoints[port]:
+                for address in endpoints[port][service]:
                     sockets.append(SockAddrInet(address, int(port)))
                     log('none', 'router.info', 4, "Added route destination '%s:%s'", (address, port))
             self.sockets = sockets
@@ -202,8 +200,8 @@ def default():
 {%- if "encryption" in policy %}
     {{ policy_name }}_client_certificate_generator = StaticCertificate(
         certificate=Certificate.fromFile(
-            certificate_file_path="{{ persistent_path }}/{{ policy.encryption_cert }}",
-            private_key=PrivateKey.fromFile("{{ persistent_path }}/{{ policy.encryption_key }}")
+            certificate_file_path="/etc/zorp/tls-{{ policy.encryption_cert }}.crt",
+            private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ policy.encryption_key }}.key")
             )
         )
 
