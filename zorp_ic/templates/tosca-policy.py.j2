@@ -113,13 +113,13 @@ config.options.kzorp_enabled = False
 Zone('internet', ['0.0.0.0/0', '::0/0'])
 
 
-class FileBasedRouter(AbstractRouter):
-    def __init__(self, destinations_file='/etc/zorp/endpoints', forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
-        super(FileBasedRouter, self).__init__(forge_addr, forge_port)
+class K8SRouter(AbstractRouter):
+    def __init__(self, forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
+        super(K8SBasedRouter, self).__init__(forge_addr, forge_port)
         self.overrideable = overrideable
         self.destinations_file = destinations_file
         self.destinations_file_last_modify = 0
-        self.endpoints = {{ conf.endpoints.TCP }}
+        self.endpoints = {{ endpoints.TCP }}
         self.sockets = []
         self._loadConfig()
 
@@ -137,7 +137,7 @@ class FileBasedRouter(AbstractRouter):
 
 
     def routeConnection(self, session):
-        super(FileBasedRouter, self).routeConnection(session)
+        super(K8SRouter, self).routeConnection(session)
         self._loadConfig()
         session.setTargetAddress(self.sockets)
 
@@ -194,7 +194,7 @@ def default():
 {%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
 {%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
 
-    {{policy_name}}_router = FileBasedRouter(destinations_file="/tmp/routes.{{loop.index}}")
+    {{policy_name}}_router = K8SRouter()
     {{policy_name}}_chainer = RoundRobinChainer()
 
 {%- if "encryption" in policy %}
