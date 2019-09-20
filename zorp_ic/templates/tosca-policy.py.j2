@@ -119,8 +119,8 @@ class K8SRouter(AbstractRouter):
         self.overrideable = overrideable
         self.endpoints = {{ conf.endpoints.TCP }}
         self.services = {{ conf.services }}
-        self.sockets = []
-        sockets = {}
+        self.sockets = {}
+        sockets = []
         for port in self.endpoints:
             for service in self.endpoints[port]:
                 for address in self.endpoints[port][service]:
