@@ -155,8 +155,8 @@ class {{proxy_name}}(PlugProxy):
 {%- if policy['policy_type'] in ("HttpProxy", "HttpWebdavProxy") %}
 class {{proxy_name}}({{ policy['policy_type'] }}):
     def config(self):
+        super({{proxy_name}}, self).config()
     {{zorp_http_config(policy)}}
-        pass
 
 {# HttpURIFilter #}
 {%- elif policy['policy_type'] == "HttpURIFilterProxy" %}
