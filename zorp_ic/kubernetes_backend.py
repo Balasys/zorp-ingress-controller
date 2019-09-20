@@ -150,7 +150,7 @@ class KubernetesBackend:
             for port in service.spec.ports:
                 if port.port in relevant_ports:
                     ports[port.protocol] = { port.port: port.target_port }
-                services[service.metadata.name] = ports
+                    services[service.metadata.name] = ports
         return services
 
     def _get_endpoints(self):
