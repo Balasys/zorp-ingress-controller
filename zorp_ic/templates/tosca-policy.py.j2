@@ -138,7 +138,7 @@ class K8SRouter(AbstractRouter):
         for service in self.services:
             if port in self.services[service]["TCP"]:
                 targetport = self.services[service]["TCP"][port]
-                log(session, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[targetport]))
+                log(session.session_id, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[targetport]))
                 break
         session.setTargetAddress(self.sockets[targetport])
 
