@@ -1,4 +1,5 @@
 from Zorp.Core import *
+from Zorp.Chainer import *
 from Zorp.Proxy import *
 from Zorp.Resolver import *
 from Zorp.Http import *
@@ -126,8 +127,8 @@ ResolverPolicy(name="k8sResolver", resolver=K8SResolver(mapping={{ conf.endpoint
 
 def default():
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
-    Service(name='http', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=IngressHttpProxy, resolver_policy="k8sResolver", max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
-    Service(name='https', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=IngressHttpProxy, resolver_policy="k8sResolver", encryption_policy="https_clientonly_encryption_policy", max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
+    Service(name='http', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=RoundRobinChainer(), proxy_class=IngressHttpProxy, resolver_policy="k8sResolver", max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
+    Service(name='https', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=RoundRobinChainer(), proxy_class=IngressHttpProxy, resolver_policy="k8sResolver", encryption_policy="https_clientonly_encryption_policy", max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
 
     Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=1042, iface="eth0", family=2), rule_port="1042", service="healthz")
     Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=80, iface="eth0", family=2), rule_port="80", service="http")

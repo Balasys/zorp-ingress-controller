@@ -17,7 +17,7 @@ HTTP_HDR_{{ p|upper }}
 {%- endmacro %}
 
 {%- macro zorp_config_regex_matcher(name, whitelist, blacklist) %}
-        self.{{ name }} = RegexMatcher(
+        self.{{ name }} = RegexpMatcher(
             match_list=(
                 {% for w_pattern in whitelist -%}
                 r"{{ w_pattern }}",
@@ -42,24 +42,29 @@ HTTP_HDR_{{ p|upper }}
 {%- set boolean_types = ("permit_proxy_requests", "reset_on_close", "permit_unicode_url", "permit_server_requests", "permit_ftp_over_http", "permit_http09_responses", "rewrite_host_header", "strict_header_checking", "keep_persistent", "use_canonicalized_urls", "require_host_header", "transparent_mode", "permit_null_response", "error_silent", "use_default_port_in_transparent_mode", "permit_invalid_hex_escape") %}
         {%- for param in string_types %}
         {%- if param in policy %}
+
         self.{{ param }} = "{{ policy[param] }}"
         {%- endif %}
         {%- endfor %}
         {%- for param in integer_types %}
         {%- if param in policy %}
+
         self.{{ param }} = {{ policy[param] }}
         {%- endif %}
         {%- endfor %}
         {%- for param in boolean_types -%}
         {%- if param in policy %}
+
         self.{{ param }} = {{ zorp_bool(policy[param]) }}
         {%- endif %}
         {%- endfor %}
         {% if "strict_header_checking_action" in policy -%}
+
         self.strict_header_checking_action = {{ zorp_hdr_policy(policy["strict_header_checking_action"]) }} 
         {% endif -%}
         {% if "permitted_requests" in policy -%}
         {% for method in policy["permitted_requests"] %}
+
         self.request["{{ method |upper }}"] = (HTTP_REQ_ACCEPT, )
         {%- endfor -%}
         {%- endif -%}
@@ -70,28 +75,34 @@ HTTP_HDR_{{ p|upper }}
 {%- set boolean_types = ("relay_check", "permit_percent_hack", "error_soft", "permit_exclamation_mark", "permit_omission_of_angle_brackets", "resolve_host", "permit_long_responses", "add_received_header", "tls_passthrough", "require_crlf", "permit_unknown_command") %}
         {%- for param in string_types %}
         {%- if param in policy %}
+
         self.{{ param }} = "{{ policy[param] }}"
         {%- endif %}
         {%- endfor %}
         {%- for param in integer_types %}
         {%- if param in policy %}
+
         self.{{ param }} = {{ policy[param] }}
         {%- endif %}
         {%- endfor %}
         {%- for param in boolean_types -%}
         {%- if param in policy %}
+
         self.{{ param }} = {{ zorp_bool(policy[param]) }}
         {%- endif %}
         {%- endfor %}
         {% if "relay_domains" in policy -%}
+
         self.relay_domains = ( {% for d in policy.relay_domains -%}"{{d}}", {% endfor %})
         {% endif -%}
         {% if "relay_domains_matcher_whitelist" in policy -%}
+
         {{zorp_config_regex_matcher("relay_domains_matcher", policy.relay_domains_matcher_whitelist, policy.relay_domains_matcher_blacklist| default(None))}}
         {% endif -%}
 
         {% if "extensions" in policy -%}
         {% for method in policy["extensions"] %}
+
         self.request["{{ method |upper }}"] = SMTP_EXT_ACCEPT
         {%- endfor -%}
         {%- endif -%}
@@ -106,44 +117,43 @@ from Zorp.Dispatch import Dispatcher
 from Zorp.Service import Service
 from Zorp.Http import *
 from Zorp.Smtp import *
-from Zorp.Matcher import RegexMatcher
+from Zorp.Matcher import RegexpMatcher
 from Zorp.SockAddr import SockAddrInetHostname
 
 config.options.kzorp_enabled = False
 Zone('internet', ['0.0.0.0/0', '::0/0'])
 
 
-class FileBasedRouter(AbstractRouter):
-    def __init__(self, destinations_file='/tmp/router_destinations', forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
-        super(FileBasedRouter, self).__init__(forge_addr, forge_port)
+class K8SRouter(AbstractRouter):
+    def __init__(self, forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
+        super(K8SRouter, self).__init__(forge_addr, forge_port)
         self.overrideable = overrideable
-        self.destinations_file = destinations_file
-        self.destinations_file_last_modify = 0
-        self.sockets = []
-        self._loadConfig()
-
-    def _loadConfig(self):
-        new_mtime = stat(self.destinations_file).st_mtime
-        if self.destinations_file_last_modify < new_mtime:
-            self.destinations_file_last_modify = new_mtime
-            sockets = []
-            with open(self.destinations_file) as dst_file:
-                for line in dst_file:
-                    address, port = line.strip().split(':', 1)
-                    sockets.append(SockAddrInet(address, int(port)))
+        self.endpoints = {{ conf.endpoints.TCP }}
+        self.services = {{ conf.services }}
+        self.sockets = {}
+        sockets = []
+        for port in self.endpoints:
+            for service in self.endpoints[port]:
+                for address in self.endpoints[port][service]:
+                    sockets.append(SockAddrInet(address, port))
                     log('none', 'router.info', 4, "Added route destination '%s:%s'", (address, port))
-            self.sockets = sockets
+            self.sockets[port] = sockets
             log('none', 'router.info', 3, "Loaded %s route destinations", len(self.sockets))
         else:
             log('none', 'router.debug', 5, "Route destinations already loaded, skipping...")
 
-
     def routeConnection(self, session):
-        super(FileBasedRouter, self).routeConnection(session)
-        self._loadConfig()
-        session.setTargetAddress(self.sockets)
+        super(K8SRouter, self).routeConnection(session)
+        port = session.client_local.port
+        targetport = port
+        for service in self.services:
+            if port in self.services[service]["TCP"]:
+                targetport = self.services[service]["TCP"][port]
+                log(session.session_id, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[targetport]))
+                break
+        session.setTargetAddress(self.sockets[targetport])
 
-{% for policy in conf %}
+{% for policy in conf.conf %}
 {%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
 {%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
 {%- if policy['policy_type'] == "L7Proxy" %}
@@ -156,15 +166,16 @@ class {{proxy_name}}(PlugProxy):
 {%- if policy['policy_type'] in ("HttpProxy", "HttpWebdavProxy") %}
 class {{proxy_name}}({{ policy['policy_type'] }}):
     def config(self):
-    {{zorp_http_config(policy)}}
-        pass
+        super({{proxy_name}}, self).config()
+{{zorp_http_config(policy)}}
 
 {# HttpURIFilter #}
 {%- elif policy['policy_type'] == "HttpURIFilterProxy" %}
-class {{proxy_name}}({{ policy['policy_type'] }}):
-    matcher = RegexMatcher(
+class {{proxy_name}}(HttpProxyURIFilter):
+    matcher = RegexpMatcher(
         match_list=(
             {% for w_pattern in policy.matcher_whitelist -%}
+
             r"{{ w_pattern }}",
             {% endfor -%}
             ),
@@ -173,37 +184,53 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
         {% else %}
         ignore_list=(
             {% for b_pattern in policy.matcher_blacklist -%}
+
             r"{{ b_pattern }}",
             {% endfor -%}
             )
         {% endif %}
         )
     def config(self):
-    {{zorp_http_config(policy)}}
-        pass
+        super({{proxy_name}}, self).config()
+{{zorp_http_config(policy)}}
 
 {%- elif policy['policy_type'] == "SmtpProxy" %}
 class {{proxy_name}}({{ policy['policy_type'] }}):
     def config(self):
-    {{zorp_smtp_config(policy)}}
-        pass
+        super({{proxy_name}}, self).config()
+{{zorp_smtp_config(policy)}}
 
 {%- endif %}
 
 {%- endfor %}
+
+class HealthzHttpProxy(HttpProxy):
+    def config(self):
+        HttpProxy.config(self)
+        self.error_silent = TRUE
+        self.request["GET"] = (HTTP_REQ_POLICY,self.reqRedirect)
+
+    def reqRedirect(self, method, url, version):
+        self.error_status = 200
+        self.error_msg = 'OK'
+        self.error_info = 'HTTP/1.0 200 OK'
+        self.custom_reponse_body = ''
+        return HTTP_REQ_CUSTOM_RESPONSE
+
 def default():
-{% for policy in conf %}
+{% for policy in conf.conf %}
 {%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
 {%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
 
-    {{policy_name}}_router = FileBasedRouter(destinations_file="/tmp/routes.{{loop.index}}")
+    {{policy_name}}_router = K8SRouter()
     {{policy_name}}_chainer = RoundRobinChainer()
 
 {%- if "encryption" in policy %}
+
     {{ policy_name }}_client_certificate_generator = StaticCertificate(
         certificate=Certificate.fromFile(
-            certificate_file_path="{{ persistent_path }}/{{ policy.encryption_cert }}",
-            private_key=PrivateKey.fromFile("{{ persistent_path }}/{{ policy.encryption_key }}")
+            certificate_file_path="/etc/zorp/tls-{{ policy.encryption_cert }}.crt",
+            private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ policy.encryption_cert }}.key")
             )
         )
 
@@ -216,6 +243,7 @@ def default():
         {%- endif %}
         )
 {%- if policy['encryption_offload']|default(True) %}
+
     EncryptionPolicy(name="encryption_policy_{{ policy_name }}",
         encryption=ClientOnlyEncryption(
             client_verify=ClientNoneVerifier(),
@@ -225,6 +253,7 @@ def default():
         )
 
 {%- else %}
+
     {{ policy_name }}_server_ssl_options=ServerSSLOptions(
         method=SSL_METHOD_TLSV1,
         {%- if "encryption_cipher" in policy %}
@@ -245,12 +274,19 @@ def default():
         )
 
 {%- endif %}
+
     Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }}, encryption_policy="encryption_policy_{{ policy_name }}")
 
 {%- else %}
+
     Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }})
 {%- endif %}
 {%- for port in policy.target_ports %}
+
     Dispatcher(bindto=DBSockAddr(sa=SockAddrInet('0.0.0.0', {{ port }}), protocol=ZD_PROTO_TCP), service="{{ policy_name }}", threaded=TRUE)
 {%- endfor %}
 {%- endfor %}
+
+    Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
+    Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=1042, iface="eth0", family=2), rule_port="1042", service="healthz")
+

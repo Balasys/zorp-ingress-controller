@@ -1,0 +1,13 @@
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: zorp
+    zorp.ingress.kubernetes.io/conf: |
+      [{"target_ports": [8080], "policy_type": "HttpProxy"}, {"max_keepalive_requests": 567, "permit_proxy_requests": true, "target_ports": [81, 82], "timeout": 100, "parent_proxy": "foo", "policy_type": "HttpProxy", "strict_header_checking_action": "abort", "permitted_requests": ["put", "post"]}, {"target_ports": [83], "policy_type": "HttpWebdavProxy"}, {"matcher_whitelist": ["foo", "bar"], "target_ports": [84], "policy_type": "HttpURIFilterProxy"}, {"target_ports": [85], "encryption": true, "encryption_cipher": "low", "parent_proxy": "ize", "encryption_key": "foo.key", "matcher_whitelist": ["foo", "bar"], "policy_type": "HttpURIFilterProxy", "matcher_blacklist": ["baz", "que"], "encryption_cert": "foo.cert", "encryption_offload": true}, {"target_ports": [86], "policy_type": "L7Proxy"}, {"target_ports": [87], "policy_type": "L7Proxy", "encryption": true, "encryption_cipher": "low", "encryption_cert": "foo.cert", "encryption_key": "foo.key", "encryption_offload": false}, {"target_ports": [88], "policy_type": "SmtpProxy"}, {"target_ports": [89], "autodetect_domain_from": "fqdn", "append_domain": "bar", "relay_check": true, "timeout": 123, "extensions": ["pipelining", "size"], "policy_type": "SmtpProxy", "max_request_length": 5, "relay_domains": ["foo", "bar"], "relay_domains_matcher_blacklist": ["more", "stuff"], "relay_domains_matcher_whitelist": ["ize", "hoze"]}]
+spec:
+  rules:
+    - http:

@@ -78,7 +78,7 @@ class KubernetesBackend:
         spec["services"] = services
         annotations = ingress.metadata.annotations
         if "zorp.ingress.kubernetes.io/conf" in annotations:
-            spec["annotations"] = annotations["zorp.ingress.kubernetes.io/conf"]
+            spec["annotation"] = annotations["zorp.ingress.kubernetes.io/conf"]
         return spec
 
     def _merge_ingress_spec(self, ingresses, ingress):
@@ -139,6 +139,20 @@ class KubernetesBackend:
                 services[service.metadata.name] = ports
         return services
 
+    def get_services_from_annotation(self, annotation):
+        relevant_ports = []
+        for rule in annotation:
+            if "target_ports" in rule:
+                relevant_ports.extend(rule["target_ports"])
+        services = {}
+        for service in self._get_services().items:
+            ports = {}
+            for port in service.spec.ports:
+                if port.port in relevant_ports:
+                    ports[port.protocol] = { port.port: port.target_port }
+                    services[service.metadata.name] = ports
+        return services
+
     def _get_endpoints(self):
         try:
             api_response = self._api.list_endpoints_for_all_namespaces()
@@ -175,6 +189,34 @@ class KubernetesBackend:
                                 endpoints[port.port] = { name : [address.ip, ]}
         return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
 
+    def get_endpoints_from_annotation(self, annotation):
+        relevant_ports = []
+        for rule in annotation:
+            if "target_ports" in rule:
+                relevant_ports.extend(rule["target_ports"])
+
+        tcp_endpoints = {}
+        udp_endpoints = {}
+        for endpoint in self._get_endpoints().items:
+            if endpoint.subsets is not None:
+                for subset in endpoint.subsets:
+                    for address in subset.addresses:
+                        for port in subset.ports:
+                            if port.port in relevant_ports:
+                                name = endpoint.metadata.name
+                                if port.protocol == "TCP":
+                                    endpoints = tcp_endpoints
+                                else:
+                                    endpoints = udp_endpoints
+                                if port.port in endpoints:
+                                    if name in endpoints[port.port]:
+                                        endpoints[port.port][name].append(address.ip)
+                                    else:
+                                        endpoints[port.port][name] = [address.ip, ]
+                                else:
+                                    endpoints[port.port] = { name : [address.ip, ]}
+        return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
+
     def _get_secret(self, namespace=None, name='tls-secret'):
         if namespace is None:
             namespace = self.namespace
@@ -182,7 +224,7 @@ class KubernetesBackend:
             secret = self._api.read_namespaced_secret(name, namespace)
         except client.rest.ApiException as api_exception:
             if api_exception.status == 404:
-                self._logger.error("Failed to fetch secret; namespace='%s', secret='%s'" % (self.namespace, "tls-secret"))
+                self._logger.error("Failed to fetch secret; namespace='%s', secret='%s'" % (self.namespace, name))
                 return None
             else:
                 self._logger.error('Failed to read K8S Secret.')
@@ -232,3 +274,11 @@ class KubernetesBackend:
         if secret is None:
             return []
         return base64.b64decode(secret.data.keys())
+
+    def get_secrets_from_annotation(self, annotation):
+        secrets = {}
+        for rule in annotation:
+            if "encryption_cert" in rule and "encryption_key" in rule:
+                secret = self.read_named_tls_secret(self.namespace, rule["encryption_cert"])
+                secrets[rule["encryption_cert"]] = secret
+        return secrets

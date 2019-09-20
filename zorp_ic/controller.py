@@ -2,6 +2,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import argparse
 from copy import deepcopy
 from jinja2 import Environment, PackageLoader
+import json
 import logging
 import os
 import os.path
@@ -94,12 +95,12 @@ class ZorpConfig(object):
         keyfilename = "/etc/zorp/tls-%s.key" % name
         self._write_and_set_perms(keyfilename, secret["tls.key"])
 
-    def generate_config(self):
-        # debug output
+    def write_config_debug(self):
         f = open("/tmp/k8s-config", "w")
         f.write(str(self.config)+"\n")
         f.close()
 
+    def generate_config(self):
         if self.has_default_cert is False:
             self.generate_self_signed_cert()
         for secret in self.secrets:
@@ -107,17 +108,8 @@ class ZorpConfig(object):
         policyPy = ZorpConfigGenerator("templates/")
         if self.behaviour == 'basic':
             policyPy.renderTemplate("basic-policy.py.j2", self.config)
-            return True
         if self.behaviour == 'tosca':
-            annotation = self.config["ingress"].get("annotation", None)
-            if annotation is not None:
-                policyPy.renderTemplate("tosca-policy.py.j2", self.config["ingress"]["annotation"])
-                return True
-            else:
-                self._logger.error("Missing ingress annotation, not generating configuration")
-                return False
-        self._logger.error("Unexpected behaviour value, not generating configuration")
-        return False
+            policyPy.renderTemplate("tosca-policy.py.j2", {"conf": self.config["conf"], "endpoints": self.config["endpoints"], "services": self.config["services"]})
 
     def reload_zorp(self):
         self._logger.info("Configuration changed, reloading Zorp")
@@ -128,15 +120,27 @@ class ZorpConfig(object):
 
     def load_k8s_config(self):
         oldconfig = deepcopy(self.config)
-        self.config["ingress"] = self.k8s.get_relevant_ingresses()
-        self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
-        self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
-        self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
-        if oldconfig != self.config:
-           if self.generate_config():
-               self.reload_zorp()
-           else:
-               self._logger.error("Failed generating configration, not reloading")
+        try:
+            if self.behaviour == "basic":
+                self.config["ingress"] = self.k8s.get_relevant_ingresses()
+                self.config["services"] = self.k8s.get_relevant_services(self.config["ingress"])
+                self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
+                self.secrets = self.k8s.get_relevant_secrets(self.config["ingress"])
+            else:
+                self.config["ingress"] = self.k8s.get_relevant_ingresses()
+                annotation = self.config["ingress"].get("annotation", None)
+                if annotation is not None:
+                    self.config["conf"] = json.loads(annotation)
+                self.config["services"] = self.k8s.get_services_from_annotation(self.config["conf"])
+                self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
+                self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
+            self.write_config_debug()
+            if oldconfig != self.config:
+                self.generate_config()
+                self.reload_zorp()
+        except Exception:
+            self.config = oldconfig
+            raise
 
 def process_k8s_changes(zorpConfig):
     zorpConfig.load_k8s_config()
