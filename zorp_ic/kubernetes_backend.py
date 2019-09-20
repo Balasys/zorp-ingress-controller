@@ -139,6 +139,19 @@ class KubernetesBackend:
                 services[service.metadata.name] = ports
         return services
 
+    def get_services_from_annotation(self, annotation):
+        relevant_ports = []
+        for rule in annotation:
+            if "target_ports" in rule:
+                relevant_ports.extend(rule["target_ports"])
+        for service in self._get_services().items:
+            ports = {}
+            for port in service.spec.ports:
+                if port.port in relevant_ports:
+                    ports[port.protocol] = { port.port: port.target_port }
+                services[service.metadata.name] = ports
+        return services
+
     def _get_endpoints(self):
         try:
             api_response = self._api.list_endpoints_for_all_namespaces()
