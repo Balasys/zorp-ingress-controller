@@ -120,7 +120,6 @@ class K8SRouter(AbstractRouter):
         self.endpoints = {{ conf.endpoints.TCP }}
         self.services = {{ conf.services }}
         self.sockets = []
-        self._loadConfig()
         sockets = {}
         for port in self.endpoints:
             for service in self.endpoints[port]:
