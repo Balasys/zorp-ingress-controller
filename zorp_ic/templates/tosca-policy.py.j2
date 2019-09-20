@@ -187,7 +187,7 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
 
 {%- endfor %}
 def default():
-{% for policy in conf %}
+{% for policy in conf.conf %}
 {%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
 {%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
 
