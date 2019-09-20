@@ -171,10 +171,11 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
 
 {# HttpURIFilter #}
 {%- elif policy['policy_type'] == "HttpURIFilterProxy" %}
-class {{proxy_name}}({{ policy['policy_type'] }}):
+class {{proxy_name}}(HttpProxyURIFilter):
     matcher = RegexpMatcher(
         match_list=(
             {% for w_pattern in policy.matcher_whitelist -%}
+
             r"{{ w_pattern }}",
             {% endfor -%}
             ),
@@ -183,6 +184,7 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
         {% else %}
         ignore_list=(
             {% for b_pattern in policy.matcher_blacklist -%}
+
             r"{{ b_pattern }}",
             {% endfor -%}
             )
