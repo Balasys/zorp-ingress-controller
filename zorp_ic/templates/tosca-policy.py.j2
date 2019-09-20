@@ -42,24 +42,29 @@ HTTP_HDR_{{ p|upper }}
 {%- set boolean_types = ("permit_proxy_requests", "reset_on_close", "permit_unicode_url", "permit_server_requests", "permit_ftp_over_http", "permit_http09_responses", "rewrite_host_header", "strict_header_checking", "keep_persistent", "use_canonicalized_urls", "require_host_header", "transparent_mode", "permit_null_response", "error_silent", "use_default_port_in_transparent_mode", "permit_invalid_hex_escape") %}
         {%- for param in string_types %}
         {%- if param in policy %}
+
         self.{{ param }} = "{{ policy[param] }}"
         {%- endif %}
         {%- endfor %}
         {%- for param in integer_types %}
         {%- if param in policy %}
+
         self.{{ param }} = {{ policy[param] }}
         {%- endif %}
         {%- endfor %}
         {%- for param in boolean_types -%}
         {%- if param in policy %}
+
         self.{{ param }} = {{ zorp_bool(policy[param]) }}
         {%- endif %}
         {%- endfor %}
         {% if "strict_header_checking_action" in policy -%}
+
         self.strict_header_checking_action = {{ zorp_hdr_policy(policy["strict_header_checking_action"]) }} 
         {% endif -%}
         {% if "permitted_requests" in policy -%}
         {% for method in policy["permitted_requests"] %}
+
         self.request["{{ method |upper }}"] = (HTTP_REQ_ACCEPT, )
         {%- endfor -%}
         {%- endif -%}
@@ -70,28 +75,34 @@ HTTP_HDR_{{ p|upper }}
 {%- set boolean_types = ("relay_check", "permit_percent_hack", "error_soft", "permit_exclamation_mark", "permit_omission_of_angle_brackets", "resolve_host", "permit_long_responses", "add_received_header", "tls_passthrough", "require_crlf", "permit_unknown_command") %}
         {%- for param in string_types %}
         {%- if param in policy %}
+
         self.{{ param }} = "{{ policy[param] }}"
         {%- endif %}
         {%- endfor %}
         {%- for param in integer_types %}
         {%- if param in policy %}
+
         self.{{ param }} = {{ policy[param] }}
         {%- endif %}
         {%- endfor %}
         {%- for param in boolean_types -%}
         {%- if param in policy %}
+
         self.{{ param }} = {{ zorp_bool(policy[param]) }}
         {%- endif %}
         {%- endfor %}
         {% if "relay_domains" in policy -%}
+
         self.relay_domains = ( {% for d in policy.relay_domains -%}"{{d}}", {% endfor %})
         {% endif -%}
         {% if "relay_domains_matcher_whitelist" in policy -%}
+
         {{zorp_config_regex_matcher("relay_domains_matcher", policy.relay_domains_matcher_whitelist, policy.relay_domains_matcher_blacklist| default(None))}}
         {% endif -%}
 
         {% if "extensions" in policy -%}
         {% for method in policy["extensions"] %}
+
         self.request["{{ method |upper }}"] = SMTP_EXT_ACCEPT
         {%- endfor -%}
         {%- endif -%}
@@ -156,7 +167,7 @@ class {{proxy_name}}(PlugProxy):
 class {{proxy_name}}({{ policy['policy_type'] }}):
     def config(self):
         super({{proxy_name}}, self).config()
-    {{zorp_http_config(policy)}}
+{{zorp_http_config(policy)}}
 
 {# HttpURIFilter #}
 {%- elif policy['policy_type'] == "HttpURIFilterProxy" %}
@@ -178,14 +189,14 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
         {% endif %}
         )
     def config(self):
-    {{zorp_http_config(policy)}}
-        pass
+        super({{proxy_name}}, self).config()
+{{zorp_http_config(policy)}}
 
 {%- elif policy['policy_type'] == "SmtpProxy" %}
 class {{proxy_name}}({{ policy['policy_type'] }}):
     def config(self):
-    {{zorp_smtp_config(policy)}}
-        pass
+        super({{proxy_name}}, self).config()
+{{zorp_smtp_config(policy)}}
 
 {%- endif %}
 
