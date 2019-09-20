@@ -109,7 +109,7 @@ class ZorpConfig(object):
         if self.behaviour == 'basic':
             policyPy.renderTemplate("basic-policy.py.j2", self.config)
         if self.behaviour == 'tosca':
-            policyPy.renderTemplate("tosca-policy.py.j2", {"conf": self.config["conf"], "endpoints": self.config["endpoints"]})
+            policyPy.renderTemplate("tosca-policy.py.j2", {"conf": self.config["conf"], "endpoints": self.config["endpoints"], "services": self.config["services"]})
 
     def reload_zorp(self):
         self._logger.info("Configuration changed, reloading Zorp")
@@ -131,6 +131,7 @@ class ZorpConfig(object):
                 annotation = self.config["ingress"].get("annotation", None)
                 if annotation is not None:
                     self.config["conf"] = json.loads(annotation)
+                self.config["services"] = self.k8s.get_services_from_annotation(self.config["conf"])
                 self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
                 self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
             self.write_config_debug()
