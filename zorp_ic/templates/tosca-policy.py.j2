@@ -224,6 +224,7 @@ def default():
     {{policy_name}}_chainer = RoundRobinChainer()
 
 {%- if "encryption" in policy %}
+
     {{ policy_name }}_client_certificate_generator = StaticCertificate(
         certificate=Certificate.fromFile(
             certificate_file_path="/etc/zorp/tls-{{ policy.encryption_cert }}.crt",
@@ -240,6 +241,7 @@ def default():
         {%- endif %}
         )
 {%- if policy['encryption_offload']|default(True) %}
+
     EncryptionPolicy(name="encryption_policy_{{ policy_name }}",
         encryption=ClientOnlyEncryption(
             client_verify=ClientNoneVerifier(),
@@ -249,6 +251,7 @@ def default():
         )
 
 {%- else %}
+
     {{ policy_name }}_server_ssl_options=ServerSSLOptions(
         method=SSL_METHOD_TLSV1,
         {%- if "encryption_cipher" in policy %}
