@@ -144,6 +144,7 @@ class KubernetesBackend:
         for rule in annotation:
             if "target_ports" in rule:
                 relevant_ports.extend(rule["target_ports"])
+        services = {}
         for service in self._get_services().items:
             ports = {}
             for port in service.spec.ports:
