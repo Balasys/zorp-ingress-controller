@@ -124,15 +124,14 @@ class K8SRouter(AbstractRouter):
     def _loadConfig(self):
         sockets = []
         for port in self.endpoints:
-            for service in endpoints[port]:
-                for address in endpoints[port][service]:
+            for service in self.endpoints[port]:
+                for address in self.endpoints[port][service]:
                     sockets.append(SockAddrInet(address, int(port)))
                     log('none', 'router.info', 4, "Added route destination '%s:%s'", (address, port))
             self.sockets = sockets
             log('none', 'router.info', 3, "Loaded %s route destinations", len(self.sockets))
         else:
             log('none', 'router.debug', 5, "Route destinations already loaded, skipping...")
-
 
     def routeConnection(self, session):
         super(K8SRouter, self).routeConnection(session)
