@@ -133,7 +133,7 @@ class K8SRouter(AbstractRouter):
 
     def routeConnection(self, session):
         super(K8SRouter, self).routeConnection(session)
-        port = session.target_address[0].port
+        port = session.client_local.port
         targetport = port
         for service in self.services:
             if port in service["TCP"]:
