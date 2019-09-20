@@ -115,7 +115,7 @@ Zone('internet', ['0.0.0.0/0', '::0/0'])
 
 class K8SRouter(AbstractRouter):
     def __init__(self, forge_addr=FALSE, overrideable=FALSE, forge_port=Z_PORT_ANY):
-        super(K8SBasedRouter, self).__init__(forge_addr, forge_port)
+        super(K8SRouter, self).__init__(forge_addr, forge_port)
         self.overrideable = overrideable
         self.destinations_file = destinations_file
         self.destinations_file_last_modify = 0
