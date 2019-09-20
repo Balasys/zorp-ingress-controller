@@ -224,7 +224,7 @@ class KubernetesBackend:
             secret = self._api.read_namespaced_secret(name, namespace)
         except client.rest.ApiException as api_exception:
             if api_exception.status == 404:
-                self._logger.error("Failed to fetch secret; namespace='%s', secret='%s'" % (self.namespace, "tls-secret"))
+                self._logger.error("Failed to fetch secret; namespace='%s', secret='%s'" % (self.namespace, name))
                 return None
             else:
                 self._logger.error('Failed to read K8S Secret.')
