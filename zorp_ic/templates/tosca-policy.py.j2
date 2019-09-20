@@ -230,7 +230,7 @@ def default():
     {{ policy_name }}_client_certificate_generator = StaticCertificate(
         certificate=Certificate.fromFile(
             certificate_file_path="/etc/zorp/tls-{{ policy.encryption_cert }}.crt",
-            private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ policy.encryption_key }}.key")
+            private_key=PrivateKey.fromFile("/etc/zorp/tls-{{ policy.encryption_cert }}.key")
             )
         )
 
