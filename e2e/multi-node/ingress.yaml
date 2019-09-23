@@ -1,0 +1,31 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+    ingress.class: zorp
+    zorp.ingress.kubernetes.io/conf: |
+      [
+        {
+          "policy_type": "HttpProxy",
+          "target_ports": [ 5000, 4000, 3000 ]
+        }
+      ]
+spec:
+  rules:
+  - http:
+      paths:
+        - path: /http-app-1
+          backend:
+            serviceName: http-app-svc-1
+            servicePort: 5000
+        - path: /http-app-2
+          backend:
+            serviceName: http-app-svc-2
+            servicePort: 4000
+        - path: /http-app-3
+          backend:
+            serviceName: http-app-svc-2
+            servicePort: 3000

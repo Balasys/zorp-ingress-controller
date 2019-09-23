@@ -1,0 +1,89 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-app-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-app-1
+  template:
+    metadata:
+      labels:
+        app: http-app-1
+    spec:
+      containers:
+        - name: http-app-1
+          image: python-http:1.0.1
+          imagePullPolicy: IfNotPresent
+          command: ["./server.py"]
+          ports:
+            - containerPort: 5000
+          env:
+            - name: APP_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: APP_PORT
+              value: "5000"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-app-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-app-2
+  template:
+    metadata:
+      labels:
+        app: http-app-2
+    spec:
+      containers:
+        - name: http-app-2
+          image: python-http:1.0.1
+          imagePullPolicy: IfNotPresent
+          command: ["./server.py"]
+          ports:
+            - containerPort: 4000
+          env:
+            - name: APP_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: APP_PORT
+              value: "4000"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-app-3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-app-3
+  template:
+    metadata:
+      labels:
+        app: http-app-3
+    spec:
+      containers:
+        - name: http-app-3
+          image: python-http:1.0.1
+          imagePullPolicy: IfNotPresent
+          command: ["./server.py"]
+          ports:
+            - containerPort: 3000
+          env:
+            - name: APP_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: APP_PORT
+              value: "3000"
