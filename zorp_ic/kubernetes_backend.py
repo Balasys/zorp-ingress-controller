@@ -201,9 +201,9 @@ class KubernetesBackend:
         for endpoint in self._get_endpoints().items:
             if endpoint.subsets is not None:
                 for subset in endpoint.subsets:
-                    for address in subset.addresses:
-                        for port in subset.ports:
-                            if port.port in relevant_ports:
+                    for port in subset.ports:
+                        if port.port in relevant_ports and subset.addresses is not None:
+                            for address in subset.addresses:
                                 name = endpoint.metadata.name
                                 if port.protocol == "TCP":
                                     endpoints = tcp_endpoints
