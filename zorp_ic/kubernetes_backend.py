@@ -58,10 +58,11 @@ class KubernetesBackend:
         rules = {}
         for rule in ingress.spec.rules:
             paths = {}
-            for path in rule.http.paths:
-                paths[path.path] = {"service": path.backend.service_name, "port": path.backend.service_port}
-                services.append(path.backend.service_name)
-            rules[rule.host] = paths
+            if rule.http is not None:
+                for path in rule.http.paths:
+                    paths[path.path] = {"service": path.backend.service_name, "port": path.backend.service_port}
+                    services.append(path.backend.service_name)
+                rules[rule.host] = paths
         spec = {"rules": rules}
         tlsspec = {}
         if ingress.spec.tls is not None:
