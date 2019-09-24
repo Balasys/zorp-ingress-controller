@@ -131,16 +131,19 @@ class K8SRouter(AbstractRouter):
         self.endpoints = {{ conf.endpoints.TCP }}
         self.services = {{ conf.services }}
         self.sockets = {}
+
         for port in self.endpoints:
             sockets = []
             for service in self.endpoints[port]:
                 for address in self.endpoints[port][service]:
-                    sockets.append(SockAddrInet(address, port))
-                    log('none', 'router.info', 4, "Added route destination '%s:%s'", (address, port))
+                    targetport = port
+                    for s in self.services:
+                        if port in self.services[s]["TCP"]:
+                            targetport = self.services[s]["TCP"][port]
+                    sockets.append(SockAddrInet(address, targetport))
+                    log('none', 'router.info', 4, "Added route destination '%s:%s'", (address, targetport))
             self.sockets[port] = sockets
             log('none', 'router.info', 3, "Loaded %s route destinations", len(self.sockets))
-        else:
-            log('none', 'router.debug', 5, "Route destinations already loaded, skipping...")
 
     def routeConnection(self, session):
         super(K8SRouter, self).routeConnection(session)
@@ -149,9 +152,9 @@ class K8SRouter(AbstractRouter):
         for service in self.services:
             if port in self.services[service]["TCP"]:
                 targetport = self.services[service]["TCP"][port]
-                log(session.session_id, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[port]))
+                log(session.session_id, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[targetport]))
                 break
-        session.setTargetAddress(self.sockets[port])
+        session.setTargetAddress(self.sockets[targetport])
 
 {% for policy in conf.conf %}
 {%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
@@ -275,11 +278,11 @@ def default():
 
 {%- if "encryption" in policy and policy["encryption"] is sameas true %}
 
-    Service(name='{{ policy_name }}', router=K8SRouter(), chainer=RoundRobinChainer(), proxy_class={{ proxy_name }}, encryption_policy="encryption_policy_{{ policy_name }}")
+    Service(name='{{ policy_name }}', router=K8SRouter(), chainer=RoundRobinChainer(), proxy_class={{ proxy_name }}, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE, encryption_policy="encryption_policy_{{ policy_name }}")
 
 {%- else %}
 
-    Service(name='{{ policy_name }}', router=K8SRouter(), chainer=RoundRobinChainer(), proxy_class={{ proxy_name }})
+    Service(name='{{ policy_name }}', router=K8SRouter(), chainer=RoundRobinChainer(), proxy_class={{ proxy_name }}, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
 {%- endif %}
 {%- for port in policy.target_ports %}
 
