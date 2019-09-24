@@ -131,8 +131,8 @@ class K8SRouter(AbstractRouter):
         self.endpoints = {{ conf.endpoints.TCP }}
         self.services = {{ conf.services }}
         self.sockets = {}
-        sockets = []
         for port in self.endpoints:
+            sockets = []
             for service in self.endpoints[port]:
                 for address in self.endpoints[port][service]:
                     sockets.append(SockAddrInet(address, port))
@@ -149,9 +149,9 @@ class K8SRouter(AbstractRouter):
         for service in self.services:
             if port in self.services[service]["TCP"]:
                 targetport = self.services[service]["TCP"][port]
-                log(session.session_id, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[targetport]))
+                log(session.session_id, 'router.info', 3, "Mapping port; port='%s', targetport='%s', endpoints='%s'", (port, targetport, self.sockets[port]))
                 break
-        session.setTargetAddress(self.sockets[targetport])
+        session.setTargetAddress(self.sockets[port])
 
 {% for policy in conf.conf %}
 {%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
@@ -202,29 +202,6 @@ class {{proxy_name}}({{ policy['policy_type'] }}):
 
 {%- endif %}
 
-{%- endfor %}
-
-class HealthzHttpProxy(HttpProxy):
-    def config(self):
-        HttpProxy.config(self)
-        self.error_silent = TRUE
-        self.request["GET"] = (HTTP_REQ_POLICY,self.reqRedirect)
-
-    def reqRedirect(self, method, url, version):
-        self.error_status = 200
-        self.error_msg = 'OK'
-        self.error_info = 'HTTP/1.0 200 OK'
-        self.custom_reponse_body = ''
-        return HTTP_REQ_CUSTOM_RESPONSE
-
-def default():
-{% for policy in conf.conf %}
-{%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
-{%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
-
-    {{policy_name}}_router = K8SRouter()
-    {{policy_name}}_chainer = RoundRobinChainer()
-
 {%- if "encryption" in policy and policy["encryption"] is sameas true %}
 
     {{ policy_name }}_client_certificate_generator = StaticCertificate(
@@ -274,19 +251,42 @@ def default():
         )
 
 {%- endif %}
+{%- endif %}
 
-    Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }}, encryption_policy="encryption_policy_{{ policy_name }}")
+{%- endfor %}
+
+class HealthzHttpProxy(HttpProxy):
+    def config(self):
+        HttpProxy.config(self)
+        self.error_silent = TRUE
+        self.request["GET"] = (HTTP_REQ_POLICY,self.reqRedirect)
+
+    def reqRedirect(self, method, url, version):
+        self.error_status = 200
+        self.error_msg = 'OK'
+        self.error_info = 'HTTP/1.0 200 OK'
+        self.custom_reponse_body = ''
+        return HTTP_REQ_CUSTOM_RESPONSE
+
+def default():
+{% for policy in conf.conf %}
+{%- set policy_name = "MicadoSecurityPolicy_" ~ loop.index  %}
+{%- set proxy_name = policy_name ~ '_' ~ policy['policy_type']  %}
+
+{%- if "encryption" in policy and policy["encryption"] is sameas true %}
+
+    Service(name='{{ policy_name }}', router=K8SRouter(), chainer=RoundRobinChainer(), proxy_class={{ proxy_name }}, encryption_policy="encryption_policy_{{ policy_name }}")
 
 {%- else %}
 
-    Service(name='{{ policy_name }}', router={{ policy_name }}_router, chainer={{ policy_name }}_chainer, proxy_class={{ proxy_name }})
+    Service(name='{{ policy_name }}', router=K8SRouter(), chainer=RoundRobinChainer(), proxy_class={{ proxy_name }})
 {%- endif %}
 {%- for port in policy.target_ports %}
 
-    Dispatcher(bindto=DBSockAddr(sa=SockAddrInet('0.0.0.0', {{ port }}), protocol=ZD_PROTO_TCP), service="{{ policy_name }}", threaded=TRUE)
+    Dispatcher(transparent=FALSE, bindto=DBSockAddr(sa=SockAddrInet('0.0.0.0', {{ port }}), protocol=ZD_PROTO_TCP), rule_port={{ port }}, service="{{ policy_name }}")
 {%- endfor %}
 {%- endfor %}
 
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
-    Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=1042, iface="eth0", family=2), rule_port="1042", service="healthz")
+    Dispatcher(transparent=FALSE, bindto=DBSockAddr(sa=SockAddrInet('0.0.0.0', 1042), protocol=ZD_PROTO_TCP), rule_port="1042", service="healthz")
 
