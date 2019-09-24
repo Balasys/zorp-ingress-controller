@@ -20,5 +20,5 @@ class HealthzHttpProxy(HttpProxy):
 
 def default():
     Service(name='healthz', router=DirectedRouter(dest_addr=(SockAddrInet('127.0.0.1', 4000)), overrideable=TRUE), chainer=ConnectChainer(), proxy_class=HealthzHttpProxy, max_instances=0, max_sessions=0, keepalive=Z_KEEPALIVE_NONE)
-    Dispatcher(transparent=FALSE, bindto=DBIface(protocol=ZD_PROTO_TCP, port=1042, iface="eth0", family=2), rule_port="1042", service="healthz")
+    Dispatcher(transparent=FALSE, bindto=DBSockAddr(sa=SockAddrInet('0.0.0.0', 1042), protocol=ZD_PROTO_TCP), rule_port="1042", service="healthz")
 
