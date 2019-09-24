@@ -56,16 +56,17 @@ class ZorpConfig(object):
 
     config = {}
 
-    def __init__(self, namespace='default', ingress_class='zorp', behaviour='basic', ingress=None, services=None, endpoints=None, secrets=None):
+    def __init__(self, namespace='default', ignore_namespaces='kube-system', ingress_class='zorp', behaviour='basic', ingress=None, services=None, endpoints=None, secrets=None):
         self.config["ingress"] = ingress
         self.config["services"] = services
         self.config["endpoints"] = endpoints
         self.config["secrets"] = secrets
         self.behaviour = behaviour
+        self.ignore_namespaces = ignore_namespaces.split(",")
 
         self._logger = logging.getLogger('flask.app')
         self._logger.setLevel(logging.getLevelName('INFO'))
-        self.k8s = KubernetesBackend(namespace, ingress_class)
+        self.k8s = KubernetesBackend(namespace, self.ignore_namespaces, ingress_class)
 
         self.has_default_cert = os.path.isfile('/etc/zorp/tls.key')
 
@@ -150,6 +151,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Kubernetes Ingress Controller based on Zorp')
     parser.add_argument('--namespace', dest='namespace', default='default',
                     help='the namespace to watch for ingresses')
+    parser.add_argument('--ignore-namespaces', dest='ignore_namespaces', default='kube-system',
+                    help='chooses which namespaces the controller should ignore when enumerating objects')
     parser.add_argument('--ingress.class', dest='ingress_class', default='zorp',
                     help='ingress class types to watch in a multi-ingress environment')
     parser.add_argument('--behaviour', dest='behaviour', default='basic', choices=['basic', 'tosca'],
@@ -163,7 +166,7 @@ if __name__ == '__main__':
         'misfire_grace_time': 300
     }
 
-    zorpConfig = ZorpConfig(args.namespace, args.ingress_class, args.behaviour)
+    zorpConfig = ZorpConfig(args.namespace, args.ignore_namespaces, args.ingress_class, args.behaviour)
 
     scheduler = BlockingScheduler(job_defaults=job_defaults)
     scheduler.add_job(lambda: process_k8s_changes(zorpConfig), 'interval', seconds=5, jitter=5)
