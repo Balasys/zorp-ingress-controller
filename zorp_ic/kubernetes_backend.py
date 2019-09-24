@@ -151,7 +151,7 @@ class KubernetesBackend:
         for service in self._get_services().items:
             ports = {}
             for port in service.spec.ports:
-                if port.port in relevant_ports and service.metadata.namespace not in self.ignore_namespaces:
+                if port.port in relevant_ports and service.metadata.namespace not in self.ignore_namespaces and service.metadata.name != "kubernetes":
                     ports[port.protocol] = { port.port: port.target_port }
                     services[service.metadata.name] = ports
         return services
