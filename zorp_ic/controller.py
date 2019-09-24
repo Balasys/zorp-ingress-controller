@@ -97,7 +97,7 @@ class ZorpConfig(object):
         self._write_and_set_perms(keyfilename, secret["tls.key"])
 
     def write_config_debug(self):
-        f = open("/tmp/k8s-config", "w")
+        f = open("/tmp/k8s-config2", "w")
         f.write(str(self.config)+"\n")
         f.close()
 
@@ -133,7 +133,7 @@ class ZorpConfig(object):
                 if annotation is not None:
                     self.config["conf"] = json.loads(annotation)
                 self.config["services"] = self.k8s.get_services_from_annotation(self.config["conf"])
-                self.config["endpoints"] = self.k8s.get_endpoints_from_annotation(self.config["conf"])
+                self.config["endpoints"] = self.k8s.get_relevant_endpoints(self.config["services"])
                 self.secrets = self.k8s.get_secrets_from_annotation(self.config["conf"])
             self.write_config_debug()
             if oldconfig != self.config:

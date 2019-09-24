@@ -24,12 +24,13 @@ class KubernetesBackend:
         self.namespace = namespace
         self.ignore_namespaces = ignore_namespaces
         self.ingress_class = ingress_class
+        self._logger = logging.getLogger('flask.app')
+        self._logger.setLevel(logging.getLevelName('INFO'))
+
+        self._logger.info("Initializing Kubernetes Backend; namespace='%s', ignore_namespaces='%s', ingress_class='%s'" % (self.namespace, self.ignore_namespaces, self.ingress_class))
 
         if not self._api or not self._ext_api:
-            self._logger = logging.getLogger('flask.app')
-            self._logger.setLevel(logging.getLevelName('INFO'))
             self._logger.info('Initializing Kubernetes Client.')
-
             config.load_incluster_config()
 
             self._api = client.CoreV1Api()
@@ -135,7 +136,7 @@ class KubernetesBackend:
     def get_relevant_services(self, ingress):
         services = {}
         for service in self._get_services().items:
-            if service.metadata.name in ingress["services"] and service.metadata.namespace not in self.ignore_namespaces:
+            if service.metadata.name in ingress["services"] and service.metadata.namespace not in self.ignore_namespaces and service.metadata.name != "kubernetes":
                 ports = {}
                 for port in service.spec.ports:
                     ports[port.protocol] = { port.port: port.target_port }
@@ -151,9 +152,12 @@ class KubernetesBackend:
         for service in self._get_services().items:
             ports = {}
             for port in service.spec.ports:
-                if port.port in relevant_ports and service.metadata.namespace not in self.ignore_namespaces:
-                    ports[port.protocol] = { port.port: port.target_port }
-                    services[service.metadata.name] = ports
+                if port.port in relevant_ports:
+                    if service.metadata.namespace not in self.ignore_namespaces and service.metadata.name != "kubernetes":
+                        ports[port.protocol] = { port.port: port.target_port }
+                        services[service.metadata.name] = ports
+                    else:
+                        self._logger.info("Ignoring service from namespace; name='%s', namespace='%s'" % (service.metadata.name, service.metadata.namespace))
         return services
 
     def _get_endpoints(self):
@@ -174,7 +178,7 @@ class KubernetesBackend:
         tcp_endpoints = {}
         udp_endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.metadata.name in services.keys() and endpoint.metadata.namespace not in self.ignore_namespaces:
+            if endpoint.metadata.name in services.keys():
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
@@ -190,34 +194,6 @@ class KubernetesBackend:
                                     endpoints[port.port][name] = [address.ip, ]
                             else:
                                 endpoints[port.port] = { name : [address.ip, ]}
-        return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
-
-    def get_endpoints_from_annotation(self, annotation):
-        relevant_ports = []
-        for rule in annotation:
-            if "target_ports" in rule:
-                relevant_ports.extend(rule["target_ports"])
-
-        tcp_endpoints = {}
-        udp_endpoints = {}
-        for endpoint in self._get_endpoints().items:
-            if endpoint.subsets is not None and endpoint.metadata.namespace not in self.ignore_namespaces:
-                for subset in endpoint.subsets:
-                    for port in subset.ports:
-                        if port.port in relevant_ports and subset.addresses is not None:
-                            for address in subset.addresses:
-                                name = endpoint.metadata.name
-                                if port.protocol == "TCP":
-                                    endpoints = tcp_endpoints
-                                else:
-                                    endpoints = udp_endpoints
-                                if port.port in endpoints:
-                                    if name in endpoints[port.port]:
-                                        endpoints[port.port][name].append(address.ip)
-                                    else:
-                                        endpoints[port.port][name] = [address.ip, ]
-                                else:
-                                    endpoints[port.port] = { name : [address.ip, ]}
         return {"TCP": tcp_endpoints, "UDP": udp_endpoints}
 
     def _get_secret(self, namespace=None, name='tls-secret'):
