@@ -225,7 +225,7 @@ def default():
     {{policy_name}}_router = K8SRouter()
     {{policy_name}}_chainer = RoundRobinChainer()
 
-{%- if "encryption" in policy %}
+{%- if "encryption" in policy and policy["encryption"] is sameas true %}
 
     {{ policy_name }}_client_certificate_generator = StaticCertificate(
         certificate=Certificate.fromFile(
