@@ -17,11 +17,12 @@ class KubernetesBackend:
 
     _api = None
 
-    def __init__(self, namespace='default', ingress_class='zorp'):
+    def __init__(self, namespace='default', ignore_namespaces=["kube-system"], ingress_class='zorp'):
 
         # The Borg Singleton
         self.__dict__ = self.__shared_state
         self.namespace = namespace
+        self.ignore_namespaces = ignore_namespaces
         self.ingress_class = ingress_class
 
         if not self._api or not self._ext_api:
@@ -104,16 +105,17 @@ class KubernetesBackend:
         ingresses = {'rules' : {}, 'services': [], 'tls': {}}
         ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
-            annotations = ingress.metadata.annotations
-            if "kubernetes.io/ingress.class" in annotations:
-                if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
+            if ingress.metadata.namespace not in self.ignore_namespaces:
+                annotations = ingress.metadata.annotations
+                if "kubernetes.io/ingress.class" in annotations:
+                    if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
+                        ingress = self._get_ingress_spec(ingress)
+                        self._merge_ingress_spec(ingresses, ingress)
+                    else:
+                        self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (self._getName(ingress), annotations["kubernetes.io/ingress.class"]))
+                else:
                     ingress = self._get_ingress_spec(ingress)
                     self._merge_ingress_spec(ingresses, ingress)
-                else:
-                    self._logger.info("Ignoring ingress that belongs to a different controller class; ingress='%s', class='%s'" % (self._getName(ingress), annotations["kubernetes.io/ingress.class"]))
-            else:
-                ingress = self._get_ingress_spec(ingress)
-                self._merge_ingress_spec(ingresses, ingress)
         return ingresses
 
     def _get_services(self):
@@ -133,7 +135,7 @@ class KubernetesBackend:
     def get_relevant_services(self, ingress):
         services = {}
         for service in self._get_services().items:
-            if service.metadata.name in ingress["services"]:
+            if service.metadata.name in ingress["services"] and service.metadata.namespace not in self.ignore_namespaces:
                 ports = {}
                 for port in service.spec.ports:
                     ports[port.protocol] = { port.port: port.target_port }
@@ -149,7 +151,7 @@ class KubernetesBackend:
         for service in self._get_services().items:
             ports = {}
             for port in service.spec.ports:
-                if port.port in relevant_ports:
+                if port.port in relevant_ports and service.metadata.namespace not in self.ignore_namespaces:
                     ports[port.protocol] = { port.port: port.target_port }
                     services[service.metadata.name] = ports
         return services
@@ -172,7 +174,7 @@ class KubernetesBackend:
         tcp_endpoints = {}
         udp_endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.metadata.name in services.keys():
+            if endpoint.metadata.name in services.keys() and endpoint.metadata.namespace not in self.ignore_namespaces:
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
@@ -199,7 +201,7 @@ class KubernetesBackend:
         tcp_endpoints = {}
         udp_endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.subsets is not None:
+            if endpoint.subsets is not None and endpoint.metadata.namespace not in self.ignore_namespaces:
                 for subset in endpoint.subsets:
                     for port in subset.ports:
                         if port.port in relevant_ports and subset.addresses is not None:
