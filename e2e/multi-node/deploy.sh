@@ -20,4 +20,5 @@ kubectl wait --for=condition=available --timeout=600s deployment/http-app-3
 kubectl get deployments -A
 kubectl get pods -o wide -A
 kubectl get svc -A
+kubectl get nodes --show-labels
 kubectl describe pod `kubectl get pods -n zorp-controller | grep zorp | cut -d " " -f 1` -n zorp-controller
