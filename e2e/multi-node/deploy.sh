@@ -7,6 +7,7 @@ cd $SCRIPT_ROOT
 docker build -t python-http:1.0.1 ..
 docker images
 kind load docker-image python-http:1.0.1
+kind load docker-image balasys/zorp-ingress:latest
 kubectl apply -f deployments.yaml
 kubectl apply -f services.yaml
 kubectl apply -f zorp-ingress.yaml
