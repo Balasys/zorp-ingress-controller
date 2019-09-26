@@ -1,5 +1,10 @@
-language: minimal
-dist: xenial
+language: go
+cache:
+  directories:
+    - $HOME/.cache/go-build
+
+go:
+  - '1.11.x'
 
 services:
 - docker
@@ -13,24 +18,27 @@ notifications:
 
 env:
   global:
-  - CHANGE_MINIKUBE_NONE_USER=true
-  - MINIKUBE_WANTUPDATENOTIFICATION=false
-  - MINIKUBE_WANTREPORTERRORPROMPT=false
-  - MINIKUBE_HOME=$HOME
-  - CHANGE_MINIKUBE_NONE_USER=true
-  - KUBECONFIG=$HOME/.kube/config
   - secure: XsPYz6Zo3FPVZHUmJnk8O5ATk9TJsxXwxV1OiLptFMYX6pWCLgE3EvH00lrArAIURMCjJSXdnfjIirsrxd+TIYKpaWk8fOFQiiidIB43m9ujm4XvH/qhMTQyp6RuCAZoPqGG7dyuM0MGgR6crtE+eTOG1SgJPq7LuxHsWCSsklV7Zb8/A+MSYTYCk5P3QR69GCDBsL0dYw0MlBzIp43T58W5MgvPOlDfOKNVqmGfCyL29b+gjDTXd8J8aVkEeiryT7BGt2WkMZSaUBWhtEPKKdZrKCHJ9QYVyiJ/IpM10ryxnrfPxm+AOwpU1MCtS7BVo2FxtW9KDmdx0EroMMOtxqYi7ySDx8vsKbofeNw6hWmzMLULRNtBQH8YTeCr1HUW8bVy9Ve56o+jkszKP58jKmpZ/mRKbLHSw6BjxqdaGiiAwZy7GlqnEX7QtWZ9mm8NpxEqhq+qgAeLabksroOupmeGS62cpvlg2cE4DghEUoas6n3mq4CJbbCVSG5iTsI5zGTCHNVpl0P9sXaOFTppHIKlRn9/FazTD1s57Cn/270vt1nl85aUANxO8FapaOj1fZviOyaYQQwZC/xJ1W4SyUpxQb4KSPt4RBYcC1fIp0BN1wsoXIHoxXGd27z9S0ec1QOwaL0XNMnCRaGg0NYRh193YSdrpgGcuU03NGxFktU=
   - secure: jcwlhFxuohnBE/Nd2E0T6KpuWPPmMOD4J4eNoyV+ZSrj3FDoAPuDiR4p9LXj+pcfU2rmg9uxPh/ptt1xVbEeVb6RcrfKEidTnEi1Nkc5o5EmM7A16+tccaqahjjN2XRAHp2yrqSNe/1gsJ12t8OU5/fQ/ZqW3yHesOHYsDl5TZ6nCCafFA8FVH9QNAt4Y69j+pUXxr72SinCTMN4UvXp2c4GVhnLzuVShkP7e9L/kW3MmtsAE608gNtUixjiv02TvMw3px+fFO2YhXlfxThhSp9VFSuW0/zfho63l98LRrY7ur4VEHfNhtX9uKVoPLpc/XqLtf3dH0q2HATeYG12Dwfl7UHuqDAWI3JSCKjHjsG55xgpKQfh3Z5foFQm3gI2IF3QhP9PZgTPU+noNWJaosywjc7qu33zoCPyEbdpuhQe2uJdzoqw+buU2oOcjlS8JhPg5b1JqJUZyv1e7Fuy2frFokVDLO7Ux9+n0Y5VfNBrSmlIbeKrPgx3b5wacT+uX2zQdhu4zkzjKijr0TzKOvW5i6iMWRyw2Am92qfc4KTsUPSriwipYhv6pNaWzCSkuSEYwjCW+RwdTU5rnq0J6Hc9XmCtHgGy6ifuejrVMWZxD+Xkpzbo0S3Ub6gobtMhZdBoHKR7uETbBZnOLKtl0AjkG0ZHzJZu9ErETyILkbU=
 
-install:
-  # Download kubectl, which is a requirement for using minikube.
-  - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.15.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-  # Download minikube.
-  - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.2.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-  - mkdir -p $HOME/.kube $HOME/.minikube
-  - touch $KUBECONFIG
-  - sudo minikube start --vm-driver=none --kubernetes-version=v1.15.0
-  - "sudo chown -R travis: /home/travis/.minikube/"
+before_script:
+  # Download and install kubectl
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+        
+  # Download and install KinD
+  - GO111MODULE=on go get -u -v sigs.k8s.io/kind@master
+  # It's possible to download and install KinD using curl, similar as for kubectl
+  # This is useful in cases when Go toolchain isn't available or you prefer running stable version
+  # Binaries for KinD are available on GitHub Releases: https://github.com/kubernetes-sigs/kind/releases
+  # - curl -Lo kind https://github.com/kubernetes-sigs/kind/releases/download/0.0.1/kind-linux-amd64 && chmod +x kind && sudo mv kind /usr/local/bin/
+        
+  # Create a new Kubernetes cluster using KinD
+  - kind create cluster --config e2e/multi-node/kind-config.yaml
+
+  # Set KUBECONFIG environment variable
+  - export KUBECONFIG="$(kind get kubeconfig-path)"
+  - docker exec kind-control-plane sh -c 'echo 8.8.8.8 >> /etc/resolv.conf'
+  - kubectl cluster-info
 
 script:
   ###########################
@@ -40,13 +48,7 @@ script:
   ###########################
   # test
   ###########################
-  # Following is just to demo that the kubernetes cluster works.
-  - kubectl cluster-info
-  # Verify kube-addon-manager.
-  - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done
-  # Wait for kube-dns to be ready.
-  - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lk8s-app=kube-dns -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-dns to be available"; kubectl get pods --all-namespaces; done
-  - e2e/single-node/test.sh
+  - e2e/multi-node/test.sh
   ###########################
   # publish
   ###########################
