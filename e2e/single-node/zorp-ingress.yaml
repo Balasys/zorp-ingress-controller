@@ -106,7 +106,7 @@ spec:
       containers:
       - name: zorp-ingress
         image: balasys/zorp-ingress:develop
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args:
           - --namespace=zorp-controller
           - --ingress.class=zorp
