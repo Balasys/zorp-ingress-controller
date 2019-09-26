@@ -15,7 +15,7 @@ kubectl get nodes -o wide
 kubectl wait --for=condition=available --timeout=600s deployment/http-app-1
 kubectl wait --for=condition=available --timeout=600s deployment/http-app-2
 kubectl wait --for=condition=available --timeout=600s deployment/http-app-3
-kubectl wait --for=condition=available --timeout=600s deployment/zorp-ingress -n zorp-controller
+kubectl wait --for=condition=available --timeout=60s deployment/zorp-ingress -n zorp-controller
 kubectl get deployments
 kubectl get pods -o wide
 kubectl get svc
