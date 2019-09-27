@@ -58,6 +58,9 @@ fi
 if [ -s "err.log" ]; then
   echo -e "\nERRORS:\n"
   cat err.log
+
+  echo -e "\nCONTROLLER LOGS:\n"
+  kubectl logs `kubectl get pods -n zorp-controller | grep zorp | cut -d " " -f 1` -n zorp-controller
 fi
 
 echo -e '\n---Testing finished---'
