@@ -73,11 +73,16 @@ if [ -s "err.log" ]; then
   echo -e "\nERRORS:\n"
   cat err.log
 
-  echo -e "\nCONTROLLER LOGS:\n"
   zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
+  echo -e "\nCONTROLLER LOGS:\n"
   while read -r pod; do
-      echo -e '\n*****************************************************************************************************n'
+      echo -e '\n*****************************************************************************************************\n'
       kubectl logs pod/$pod -n zorp-controller
+  done <<< "$zorp_pods"
+  echo -e "\nCONTROLLER CONFIG:\n"
+  while read -r pod; do
+      echo -e '\n*****************************************************************************************************\n'
+      kubectl exec pod/$pod -n zorp-controller cat /etc/zorp/policy.py
   done <<< "$zorp_pods"
 fi
 
