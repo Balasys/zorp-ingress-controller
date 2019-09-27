@@ -36,17 +36,26 @@ test_request 30500
 test_request 30400
 test_request 30300
 
-# # Testing ingress routing
-# echo -e '---Testing ingress routing---\n' >> log
-# test_request 80 /http-app-1
-# test_request 80 /http-app-2
-# test_request 80 /http-app-3
-
 # Testing port-based routing
 echo -e '---Testing port-based routing---\n' >> log
 test_request 5000
 test_request 4000
 test_request 3000
+
+# Replace ingress configuration for testing ingress routing
+kubectl replace -f replace-zorp-ingress.yaml
+
+zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
+while read -r pod; do
+    kubectl wait --for=condition=Ready --timeout=600s pod/$pod -n zorp-controller    
+done <<< "$zorp_pods"
+
+
+# Testing ingress routing
+echo -e '---Testing ingress routing---\n' >> log
+test_request 80 /http-app-1
+test_request 80 /http-app-2
+test_request 80 /http-app-3
 
 #------------------------------------------
 
@@ -58,6 +67,13 @@ fi
 if [ -s "err.log" ]; then
   echo -e "\nERRORS:\n"
   cat err.log
+
+  echo -e "\nCONTROLLER LOGS:\n"
+  zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
+  while read -r pod; do
+      echo -e '\n*****************************************************************************************************n'
+      kubectl logs pod/$pod -n zorp-controller    
+  done <<< "$zorp_pods"
 fi
 
 echo -e '\n---Testing finished---'

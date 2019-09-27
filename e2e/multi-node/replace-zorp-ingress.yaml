@@ -1,0 +1,84 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    run: zorp-ingress
+  name: zorp-ingress
+  namespace: zorp-controller
+spec:
+  selector:
+    matchLabels:
+      run: zorp-ingress
+  template:
+    metadata:
+      labels:
+        run: zorp-ingress
+    spec:
+      serviceAccountName: zorp-ingress-service-account
+      containers:
+        - name: zorp-ingress
+          image: balasys/zorp-ingress
+          imagePullPolicy: IfNotPresent
+          args:
+            - --namespace=zorp-controller
+            - --ingress.class=zorp
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "50Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 1042
+          ports:
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
+            - name: stat
+              containerPort: 1024
+            - name: port5000
+              containerPort: 5000
+              hostPort: 5000
+            - name: port4000
+              containerPort: 4000
+              hostPort: 4000
+            - name: port3000
+              containerPort: 3000
+              hostPort: 3000
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+    ingress.class: zorp
+spec:
+  rules:
+  - http:
+      paths:
+        - path: /http-app-1
+          backend:
+            serviceName: http-app-svc-1
+            servicePort: 5000
+        - path: /http-app-2
+          backend:
+            serviceName: http-app-svc-2
+            servicePort: 4000
+        - path: /http-app-3
+          backend:
+            serviceName: http-app-svc-2
+            servicePort: 3000

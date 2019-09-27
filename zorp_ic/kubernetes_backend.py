@@ -106,8 +106,8 @@ class KubernetesBackend:
         ingresses = {'rules' : {}, 'services': [], 'tls': {}}
         ingress_list = self._get_ingresses()
         for ingress in ingress_list.items:
-            if ingress.metadata.namespace not in self.ignore_namespaces:
-                annotations = ingress.metadata.annotations
+            annotations = ingress.metadata.annotations
+            if ingress.metadata.namespace not in self.ignore_namespaces and annotations is not None:
                 if "kubernetes.io/ingress.class" in annotations:
                     if annotations["kubernetes.io/ingress.class"] == self.ingress_class:
                         ingress = self._get_ingress_spec(ingress)
