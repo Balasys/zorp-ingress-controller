@@ -86,14 +86,13 @@ data:
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   labels:
     run: zorp-ingress
   name: zorp-ingress
   namespace: zorp-controller
 spec:
-  replicas: 1
   selector:
     matchLabels:
       run: zorp-ingress

@@ -36,11 +36,11 @@ test_request 30500
 test_request 30400
 test_request 30300
 
-# Testing ingress routing
-echo -e '---Testing ingress routing---\n' >> log
-test_request 80 /http-app-1
-test_request 80 /http-app-2
-test_request 80 /http-app-3
+# # Testing ingress routing
+# echo -e '---Testing ingress routing---\n' >> log
+# test_request 80 /http-app-1
+# test_request 80 /http-app-2
+# test_request 80 /http-app-3
 
 # Testing port-based routing
 echo -e '---Testing port-based routing---\n' >> log
@@ -58,9 +58,6 @@ fi
 if [ -s "err.log" ]; then
   echo -e "\nERRORS:\n"
   cat err.log
-
-  echo -e "\nCONTROLLER LOGS:\n"
-  kubectl logs `kubectl get pods -n zorp-controller | grep zorp | cut -d " " -f 1` -n zorp-controller
 fi
 
 echo -e '\n---Testing finished---'

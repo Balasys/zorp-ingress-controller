@@ -16,9 +16,12 @@ kubectl get nodes -o wide
 kubectl wait --for=condition=available --timeout=600s deployment/http-app-1
 kubectl wait --for=condition=available --timeout=600s deployment/http-app-2
 kubectl wait --for=condition=available --timeout=600s deployment/http-app-3
-kubectl wait --for=condition=available --timeout=600s deployment/zorp-ingress -n zorp-controller
+
+zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
+while read -r pod; do
+    kubectl wait --for=condition=Ready --timeout=600s pod/$pod -n zorp-controller    
+done <<< "$zorp_pods"
+
 kubectl get deployments -A
 kubectl get pods -o wide -A
 kubectl get svc -A
-#kubectl get nodes --show-labels
-#kubectl describe pod `kubectl get pods -n zorp-controller | grep zorp | cut -d " " -f 1` -n zorp-controller
