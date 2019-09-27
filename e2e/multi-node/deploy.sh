@@ -19,7 +19,7 @@ kubectl wait --for=condition=available --timeout=600s deployment/http-app-3
 
 zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
 while read -r pod; do
-    kubectl wait --for=condition=Ready --timeout=600s pod/$pod -n zorp-controller    
+    kubectl wait --for=condition=Ready --timeout=600s pod/$pod -n zorp-controller
 done <<< "$zorp_pods"
 
 kubectl get deployments -A

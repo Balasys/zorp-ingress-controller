@@ -21,7 +21,7 @@ test_request () {
   fi
 
   rm -f test.log
-  rm -f test-err.log  
+  rm -f test-err.log
 }
 
 rm -f log err.log 
@@ -42,6 +42,7 @@ test_request 5000
 test_request 4000
 test_request 3000
 
+echo -e '---Applying ingress routing configuration---\n'
 # Replace ingress configuration for testing ingress routing
 kubectl replace -f replace-zorp-ingress.yaml
 
@@ -49,6 +50,10 @@ zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp
 while read -r pod; do
     kubectl wait --for=condition=Ready --timeout=600s pod/$pod -n zorp-controller    
 done <<< "$zorp_pods"
+
+
+echo -e "---Waiting for controller to pick up new configuration---\n"
+sleep 15
 
 
 # Testing ingress routing
@@ -72,7 +77,7 @@ if [ -s "err.log" ]; then
   zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
   while read -r pod; do
       echo -e '\n*****************************************************************************************************n'
-      kubectl logs pod/$pod -n zorp-controller    
+      kubectl logs pod/$pod -n zorp-controller
   done <<< "$zorp_pods"
 fi
 
