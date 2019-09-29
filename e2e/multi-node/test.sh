@@ -3,9 +3,14 @@
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")
 cd $SCRIPT_ROOT
 
-. deploy.sh
+. test_deploy.sh
+. test_logging.sh
+. test_wait.sh
+. test_run.sh
+. test_cleanup.sh
 
-echo -e "\n WAITING for controller to pick up configuration...\n"
-sleep 15
-
-. run_test.sh
+. test_deploy_ingress.sh
+. test_logging.sh
+. test_wait.sh
+. test_run_ingress.sh
+. test_cleanup.sh
