@@ -178,7 +178,7 @@ class KubernetesBackend:
         tcp_endpoints = {}
         udp_endpoints = {}
         for endpoint in self._get_endpoints().items:
-            if endpoint.metadata.name in services.keys():
+            if endpoint.metadata.name in services.keys() and endpoint.subsets is not None:
                 for subset in endpoint.subsets:
                     for address in subset.addresses:
                         for port in subset.ports:
