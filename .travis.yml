@@ -45,7 +45,7 @@ script:
   - e2e/multi-node/test.sh
 
 after_failure:
-  - e2e/multi-node/test_cleanup.sh
+  - e2e/multi-node/test_cleanup.sh error
 
 after_success:
   ###########################

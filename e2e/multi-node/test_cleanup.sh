@@ -9,7 +9,7 @@ if [ -s "log" ]; then
   cat log
 fi
 
-if [ -s "err.log" ]; then
+if [ -s "err.log" -o "$1" == "error" ]; then
   echo -e "\nERRORS:\n"
   cat err.log
 

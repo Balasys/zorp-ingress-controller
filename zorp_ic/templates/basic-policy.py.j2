@@ -86,39 +86,52 @@ class IngressHttpProxy(HttpProxy):
         self.ingress_target_port = 0
         return HttpProxy.__post_config__(self)
 
+    def return404(self):
+        self.error_status = 404
+        self.error_msg = "Not found"
+        self.custom_response_body = "Not found"
+        return HTTP_REQ_CUSTOM_RESPONSE
+
     def reqPolicy(self, method, url, version):
         # this is a secondary request within a keep-alive connection, do not re-evaluate
         if self.ingress_target_service is not None:
             return HTTP_REQ_ACCEPT
 
-        host = self.request_url_host
-        if self.url_mapping.has_key(host):
-            matches = []
-            for path in self.url_mapping[host].keys():
-                if self.request_url_file.startswith(path):
-                    matches.append(path)
+        orighost = self.request_url_host
+        if orighost in self.url_mapping:
+            host = orighost
+        else:
+            if None in self.url_mapping:
+                host = None
+            else:
+                if self.ingress_default_service is not None:
+                    self.ingress_target_service = self.ingress_default_service["service"]
+                    self.ingress_target_port = self.ingress_default_service["port"]
+                    return HTTP_REQ_ACCEPT
+                proxyLog(self, HTTP_POLICY, 3, "Unable to find mapping for host, returning 404; host='%s'", (host, ))
+                return self.return404()
+
+        matches = []
+        for path in self.url_mapping[host].keys():
+            if self.request_url_file.startswith(path):
+                matches.append(path)
+
+        if len(matches) > 0:
             #returns the longest string if the list only contains strings
             match = max(matches, key=len)
-            if self.url_mapping[host].has_key(match):
+            if match in self.url_mapping[host]:
                 rule = self.url_mapping[host][match]
                 service = rule["service"]
                 port = rule["port"]
                 targetport = self.ingress_service_ports[service]["TCP"][port]
-                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (host, self.request_url_file, service, targetport))
+                proxyLog(self, HTTP_POLICY, 3, "Mapping url; host='%s', path='%s', container='%s', port='%s'", (orighost, self.request_url_file, service, targetport))
                 self.setRequestHeader("Host", service+":"+str(targetport))
                 self.ingress_target_service = service
                 self.ingress_target_port = targetport
                 return HTTP_REQ_ACCEPT
-        if self.ingress_default_service is not None:
-            self.ingress_target_service = self.ingress_default_service["service"]
-            self.ingress_target_port = self.ingress_default_service["port"]
-            return HTTP_REQ_ACCEPT
 
         # default 404 response
-        self.error_status = 404
-        self.error_msg = "Not found"
-        self.custom_response_body = "Not found"
-        return HTTP_REQ_CUSTOM_RESPONSE
+        return self.return404()
 
     def setServerAddress(self, host, port):
         return HttpProxy.setServerAddress(self, self.ingress_target_service, self.ingress_target_port)
