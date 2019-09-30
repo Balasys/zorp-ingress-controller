@@ -20,5 +20,5 @@ spec:
             servicePort: 4000
         - path: /http-app-3
           backend:
-            serviceName: http-app-svc-2
+            serviceName: http-app-svc-3
             servicePort: 3000
