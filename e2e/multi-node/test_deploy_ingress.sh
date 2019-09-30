@@ -4,17 +4,16 @@ set -e
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")
 cd $SCRIPT_ROOT
 
-# sleep 10
 zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
 
-kubectl delete -f ingress.yaml
-kubectl delete -f replace-zorp-ingress.yaml
+kubectl delete daemonset/zorp-ingress -n zorp-controller
+kubectl delete ingress/example-ingress
 
-kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}'
-
-while read -r pod; do
-    kubectl wait --for=delete --timeout=600s pod/$pod -n zorp-controller
-done <<< "$zorp_pods"
+while [ -n "$zorp_pods" ]; do  
+    sleep 1
+    echo $zorp_pods
+    zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')    
+done 
 
 kubectl apply -f replace-zorp-ingress.yaml
 
