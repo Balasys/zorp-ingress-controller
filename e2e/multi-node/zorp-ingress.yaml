@@ -121,10 +121,13 @@ spec:
           ports:
             - name: http
               containerPort: 80
+              hostPort: 80
             - name: https
               containerPort: 443
+              hostPort: 443
             - name: stat
               containerPort: 1024
+              hostPort: 1024
             - name: port5000
               containerPort: 5000
               hostPort: 5000
