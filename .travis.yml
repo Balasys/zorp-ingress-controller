@@ -43,6 +43,11 @@ script:
   # test
   ###########################
   - e2e/multi-node/test.sh
+
+after_failure:
+  - e2e/multi-node/test_cleanup.sh
+
+after_success:
   ###########################
   # publish
   ###########################
