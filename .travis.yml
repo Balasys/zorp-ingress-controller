@@ -1,7 +1,4 @@
 language: minimal
-cache:
-  directories:
-    - $HOME/.cache/go-build
 
 services:
 - docker
