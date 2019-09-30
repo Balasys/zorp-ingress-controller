@@ -9,7 +9,6 @@ zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp
 
 kubectl delete -f ingress.yaml
 kubectl delete -f replace-zorp-ingress.yaml
-kubectl apply -f replace-zorp-ingress.yaml
 
 kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}'
 
@@ -17,7 +16,7 @@ while read -r pod; do
     kubectl wait --for=delete --timeout=600s pod/$pod -n zorp-controller
 done <<< "$zorp_pods"
 
-kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}'
+kubectl apply -f replace-zorp-ingress.yaml
 
 zorp_pods=$(kubectl get pods -l run=zorp-ingress -n zorp-controller | awk '/zorp/ {print $1}')
 
